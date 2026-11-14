@@ -94,9 +94,6 @@ class StreamBuffer{
     public:
         StreamBuffer();
         ~StreamBuffer() = default;
-    protected:
-        void seek(os::Cursor position);
-        os::Cursor tell() const;
 };
 
 

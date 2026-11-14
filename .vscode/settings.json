@@ -1,3 +1,9 @@
 {
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "code-runner.executorMap": {
+        "cpp": "cd $workspaceRoot\\Executables && .\\main.exe"
+    },
+    "code-runner.runInTerminal": false,
+    "code-runner.showExecutionMessage": true,
+    "code-runner.clearPreviousOutput": true
 }

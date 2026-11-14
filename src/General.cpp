@@ -1,4 +1,5 @@
 #include "os.hpp"
+#include <iostream>
 
 os::OpenMode operator|(os::OpenMode lhs, os::OpenMode rhs){
     return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)|static_cast<std::size_t>(rhs));
@@ -24,12 +25,34 @@ os::Wchar_t::~Wchar_t() noexcept{
     ::operator delete(data);
 }
 
+os::Wchar_t::Wchar_t(Wchar_t&& source) noexcept : data(source.data){
+    source.data = nullptr;
+}
+
+os::Wchar_t& os::Wchar_t::operator=(Wchar_t&& source) noexcept{
+    if(this == &source) return *this;
+    data = source.data;
+    source.data = nullptr;
+    return *this;
+}
+
 os::Char::Char(std::size_t len){
     data = static_cast<char*>(::operator new(sizeof(char)*len));
 }
 
 os::Char::~Char() noexcept{
     ::operator delete(data);
+}
+
+os::Char::Char(Char&& source) noexcept : data(source.data){
+    source.data = nullptr;
+}
+
+os::Char& os::Char::operator=(Char&& source) noexcept{
+    if(this == &source) return *this;
+    data = source.data;
+    source.data = nullptr;
+    return *this;
 }
 
 os::Wchar_t os::GlobalFunctions::ascii_to_wide(const char* ascii_str){
@@ -49,13 +72,14 @@ os::Wchar_t os::GlobalFunctions::ascii_to_wide(const char* ascii_str){
 os::Char os::GlobalFunctions::wide_to_ascii(const wchar_t* wide_str){
     if(!wide_str) return os::Char{};
     std::size_t len{};
-    while(wide_str != L'\0'){
+    while(wide_str[len] != L'\0'){
         if(wide_str[len] < 32 || wide_str[len] >= 127) throw os::exceptions::PathInvalid{};
         if(len == PATH_MAX_SIZE) throw os::exceptions::PathTooLong{};
         ++len;
     }
     os::Char path{len+1};
     for(std::size_t i{}; i<len; ++i) path.data[i] = static_cast<char>(wide_str[i]);
+    path.data[len] = '\0';
     return path;
 }
 
@@ -67,5 +91,8 @@ StreamBuffer::StreamBuffer(){
 
 
 int main(){
+    // std::cout << "Hello from General\n";
+    os::Wchar_t path = os::GlobalFunctions::ascii_to_wide("Hello theres");
+    std::wcout << path.data;
     return 0;
 }

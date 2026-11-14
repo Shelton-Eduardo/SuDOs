@@ -31,6 +31,10 @@ namespace os{
         Wchar_t() = default;
         Wchar_t(std::size_t len);
         ~Wchar_t() noexcept;
+        Wchar_t(const Wchar_t& source) = delete;
+        Wchar_t& operator=(const Wchar_t& source) = delete;
+        Wchar_t(Wchar_t&& source) noexcept;
+        Wchar_t& operator=(Wchar_t&& source) noexcept;
 
         explicit operator bool() const{return (data) ? true : false;}
     };
@@ -40,6 +44,10 @@ namespace os{
         Char() = default;
         Char(std::size_t len);
         ~Char() noexcept;
+        Char(const Char& source) = delete;
+        Char& operator=(const Char& source) = delete;
+        Char(Char&& source) noexcept;
+        Char& operator=(Char&& source) noexcept;
 
         explicit operator bool() const{return (data) ? true : false;}
     };
@@ -99,8 +107,12 @@ class StreamBuffer{
 
 
 #if defined(_WIN32) || defined(_WIN64)
-    #define WIN32_LEAN_AND_MEAN
-    #define NOMINMAX
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
     #include <Windows.h>
 
     namespace FileStream{

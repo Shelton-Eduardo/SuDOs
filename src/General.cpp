@@ -23,7 +23,7 @@ StreamBuffer::StreamBuffer(){
 }
 
 void StreamBuffer::seek(os::Cursor position){
-    if(position >= offset && position <= offset+static_cast<os::Cursor>(buffer_size))
+    if(position >= offset && position <= offset+static_cast<os::Cursor>(buffer_size));
 }
 
 

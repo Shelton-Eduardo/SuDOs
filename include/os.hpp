@@ -11,11 +11,8 @@
 
 // Global headers
 #include <exception>
-#include <streambuf>
 #include <cstdint>
 #include <cstddef>
-#include <istream>
-#include <ostream>
 
 
 namespace os{

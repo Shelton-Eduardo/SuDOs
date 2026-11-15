@@ -132,21 +132,6 @@ bool FileStream::WindowsStreamBuffer::refil() noexcept{
     offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(1));
     current_cursor = buffer;
     end_cursor = buffer + read;
-    std::cout << std::size_t(offset);
     return true;
 }
 #endif
-
-int main(){
-    int a = 12;
-    os::Ifstream file(L"data.bin", os::OpenMode::read | os::OpenMode::binary);
-    if(file.is_open()){
-        std::cout << "File Opened with Read method";
-        file.read(reinterpret_cast<unsigned char*>(&a), 4);
-        std::cout << std::endl << a;
-        file.read(reinterpret_cast<unsigned char*>(&a), 4);
-        std::cout << std::endl << a;
-        file.read(reinterpret_cast<unsigned char*>(&a), 4);
-        std::cout << std::endl << a;
-    }
-}

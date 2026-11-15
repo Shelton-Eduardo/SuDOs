@@ -1,5 +1,4 @@
 #include "os.hpp"
-#include <iostream>
 
 os::OpenMode operator|(os::OpenMode lhs, os::OpenMode rhs){
     return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)|static_cast<std::size_t>(rhs));
@@ -81,10 +80,4 @@ os::Char os::GlobalFunctions::wide_to_ascii(const wchar_t* wide_str){
     for(std::size_t i{}; i<len; ++i) path.data[i] = static_cast<char>(wide_str[i]);
     path.data[len] = '\0';
     return path;
-}
-
-StreamBuffer::StreamBuffer(){
-    buffer = static_cast<unsigned char*>(::operator new(buffer_size));
-    current_cursor = end_cursor = buffer;
-    offset = static_cast<os::Cursor>(0);
 }

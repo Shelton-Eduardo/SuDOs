@@ -16,7 +16,7 @@
 
 
 namespace os{
-    enum class Cursor : std::size_t{};
+    enum class Cursor : std::size_t{start = 0};
     enum class OpenMode : std::uint8_t{
         read = 0b0000'0001,
         write = 0b0000'0010,
@@ -84,6 +84,8 @@ namespace os::exceptions{
     class PathNotRelative : public std::exception{};
     class PathNotCanonical : public std::exception{};
     class PathNotNormalized : public std::exception{};
+    // Memory Handling Exceptions
+    class BufferFailure : public std::exception{};
 }
 
 namespace os::GlobalFunctions{
@@ -93,7 +95,7 @@ namespace os::GlobalFunctions{
 
 class StreamBuffer{
     protected:
-        static constexpr std::size_t buffer_size = (PAGE_BUFFER_SIZE % 4096 == 0) ? PAGE_BUFFER_SIZE : 4096;
+        static constexpr std::uint32_t buffer_size = (PAGE_BUFFER_SIZE % 4096 == 0) ? PAGE_BUFFER_SIZE : 4096;
     private:
         unsigned char* buffer;
         unsigned char* current_cursor;
@@ -101,7 +103,7 @@ class StreamBuffer{
         os::Cursor offset;
     public:
         StreamBuffer();
-        ~StreamBuffer() = default;
+        ~StreamBuffer();
 };
 
 

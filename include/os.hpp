@@ -16,7 +16,7 @@
 
 
 namespace os{
-    enum class Cursor : std::size_t{start = 0};
+    enum class Cursor : std::size_t{start = static_cast<std::size_t>(0)};
     /*
         OpenMode Rules
             Sharing Prop       Opening Prop
@@ -30,18 +30,19 @@ namespace os{
                 Share Delete
             New File/Overwrite(1) Open_Existing(0)
     */
-    enum class OpenMode : std::uint8_t{
-        read = 0b0000'0001,
-        write = 0b0000'0010,
-        read_write = 0b0000'0011,
-        append = 0b0000'0100, // if 0b0000'0000 it means Overwrite 
-        binary = 0b0000'1000, // if 0b0000'0000 it means text
-        share_read = 0b0001'0000,
-        share_write = 0b0010'0000,
+    enum class OpenMode : std::uint8_t {
+        read             = 0b0000'0001,
+        write            = 0b0000'0010,
+        read_write       = 0b0000'0011,
+        append           = 0b0000'0100, // if 0 it means Overwrite
+        binary           = 0b0000'1000, // if 0 it means text
+        share_none       = 0b0000'0000,
+        share_read       = 0b0001'0000,
+        share_write      = 0b0010'0000,
         share_read_write = 0b0011'0000,
-        share_delete = 0b0100'0000,
-        share_none = 0b0111'0000,
-        new_file = 0b1000'0000
+        share_delete     = 0b0100'0000,
+        share_all        = 0b0111'0000,
+        new_file         = 0b1000'0000
     };
 
     struct Wchar_t{
@@ -73,9 +74,13 @@ namespace os{
 
 os::OpenMode operator|(os::OpenMode lhs, os::OpenMode rhs);
 os::OpenMode operator&(os::OpenMode lhs, os::OpenMode rhs);
-constexpr os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept;
+os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept;
 os::Cursor operator+(os::Cursor lhs, os::Cursor rhs);
 os::Cursor operator-(os::Cursor lhs, os::Cursor rhs);
+os::Cursor operator-(os::Cursor lhs, int rhs);
+os::Cursor operator/(os::Cursor lhs, os::Cursor rhs);
+os::Cursor operator*(os::Cursor lhs, os::Cursor rhs);
+
 
 namespace os::exceptions{
     // File Handling Exceptions
@@ -141,9 +146,8 @@ class StreamBuffer{
     namespace FileStream{
         // FileStream class for Windows
         class WindowsStreamBuffer : public StreamBuffer{
-            private:
-                HANDLE file_handle;
             protected:
+                HANDLE file_handle;
                 os::OpenMode flags;
             public:
                 WindowsStreamBuffer();
@@ -171,9 +175,9 @@ namespace os{
 
     class Ifstream :
     #if defined(_WIN32) || defined(_WIN64)
-        FileStream::WindowsStreamBuffer
+        public FileStream::WindowsStreamBuffer
     #else 
-        FileStream::LinuxStreamBuffer
+        public FileStream::LinuxStreamBuffer
     #endif
     {
         public:
@@ -190,7 +194,7 @@ namespace os{
             Ifstream& operator=(Ifstream&&) noexcept = delete;
 
             // Essential Read Operations
-            std::size_t read(unsigned char* container, std::size_t bytes) noexcept;
+            [[nodiscard]] std::size_t read(unsigned char* container, std::size_t bytes) noexcept;
             unsigned char get();
 
             // Stream Positioning

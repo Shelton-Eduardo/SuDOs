@@ -12,7 +12,7 @@ os::OpenMode operator&(os::OpenMode lhs, os::OpenMode rhs){
     return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)&static_cast<std::size_t>(rhs));
 }
 
-constexpr os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept{
+os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept{
     return static_cast<os::OpenMode>(static_cast<std::uint8_t>(lhs) >> bitshift);
 }
 
@@ -22,6 +22,18 @@ os::Cursor operator+(os::Cursor lhs, os::Cursor rhs){
 
 os::Cursor operator-(os::Cursor lhs, os::Cursor rhs){
     return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)-static_cast<std::size_t>(rhs));
+}
+
+os::Cursor operator-(os::Cursor lhs, int rhs){
+    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs) - static_cast<std::size_t>(rhs));
+}
+
+os::Cursor operator/(os::Cursor lhs, os::Cursor rhs){
+    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)/static_cast<std::size_t>(rhs));
+}
+
+os::Cursor operator*(os::Cursor lhs, os::Cursor rhs){
+    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)*static_cast<std::size_t>(rhs));
 }
 
 os::Wchar_t::Wchar_t(std::size_t len){
@@ -103,7 +115,7 @@ std::size_t os::Ifstream::read(unsigned char* container, std::size_t bytes) noex
             if(current_cursor == end_cursor) if(!refil()) break;
             if(*current_cursor == '\r'){
                 if((current_cursor+1) == end_cursor){
-                    if(!refil){
+                    if(!refil()){
                         container[bytes_read++] = '\n';
                         break;
                     }if(*(current_cursor+1) == '\n'){
@@ -133,5 +145,13 @@ unsigned char os::Ifstream::get(){
 }
 
 void os::Ifstream::seek(os::Cursor position){
-    
+    LARGE_INTEGER aligned_pos{};
+        aligned_pos.QuadPart = static_cast<LONGLONG>(
+            (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size));
+    BOOL state = SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+        );
 }

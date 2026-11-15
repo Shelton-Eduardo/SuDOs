@@ -1,5 +1,7 @@
 #include "os.hpp"
 
+#include <iostream>
+
 #if defined(_WIN32) || defined(_WIN64)
 
 StreamBuffer::StreamBuffer(){
@@ -10,8 +12,7 @@ StreamBuffer::StreamBuffer(){
         PAGE_READWRITE
     ));
     if(!buffer) throw os::exceptions::BufferFailure{};
-    current_cursor = buffer;
-    end_cursor = buffer + buffer_size;
+    end_cursor = current_cursor = buffer;
     offset = os::Cursor::start;
 }
 
@@ -30,13 +31,16 @@ FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const char* file, os::OpenM
 FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const wchar_t* file, os::OpenMode method) : StreamBuffer(){
     file_handle = CreateFileW(
         file,
-        ((method & os::OpenMode::read_write) == os::OpenMode::read_write) ? GENERIC_READ | GENERIC_WRITE : (static_cast<bool>(method & os::OpenMode::read)) ? GENERIC_READ : GENERIC_WRITE,
+        ((method & os::OpenMode::read_write) == os::OpenMode::read_write) ? (GENERIC_READ | GENERIC_WRITE) :
+        static_cast<bool>(method & os::OpenMode::read)                     ? GENERIC_READ :
+        static_cast<bool>(method & (os::OpenMode::write | os::OpenMode::append)) ? GENERIC_WRITE : 0,
         static_cast<DWORD>((method >> 4) & static_cast<os::OpenMode>(0b0111)),
         NULL,
-        (static_cast<bool>(method & os::OpenMode::read) && static_cast<bool>(method & os::OpenMode::new_file)) ? CREATE_ALWAYS :
-         (static_cast<bool>(method & os::OpenMode::read)) ? OPEN_EXISTING : 
-         (static_cast<bool>(method & os::OpenMode::write) && static_cast<bool>(method & os::OpenMode::new_file)) ? CREATE_ALWAYS : OPEN_ALWAYS,
-        (static_cast<bool>(method & os::OpenMode::write)) ? FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH : FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING,
+        static_cast<bool>(method & os::OpenMode::new_file) ? CREATE_ALWAYS :
+        static_cast<bool>(method & (os::OpenMode::write | os::OpenMode::append)) ? OPEN_ALWAYS : OPEN_EXISTING,
+        static_cast<bool>(method & (os::OpenMode::write | os::OpenMode::append))
+            ? (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH)
+            : (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING),
         NULL
     );
     if(file_handle == INVALID_HANDLE_VALUE){
@@ -63,15 +67,18 @@ void FileStream::WindowsStreamBuffer::open(const char* path, os::OpenMode mode){
 
 void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mode){
     if(file_handle != INVALID_HANDLE_VALUE) return ;
-    file_handle = CreateFileW(
+        file_handle = CreateFileW(
         path,
-        ((mode & os::OpenMode::read_write) == os::OpenMode::read_write) ? GENERIC_READ | GENERIC_WRITE : (static_cast<bool>(mode & os::OpenMode::read)) ? GENERIC_READ : GENERIC_WRITE,
+        ((mode & os::OpenMode::read_write) == os::OpenMode::read_write) ? (GENERIC_READ | GENERIC_WRITE) :
+        static_cast<bool>(mode & os::OpenMode::read)                     ? GENERIC_READ :
+        static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append)) ? GENERIC_WRITE : 0,
         static_cast<DWORD>((mode >> 4) & static_cast<os::OpenMode>(0b0111)),
         NULL,
-        (static_cast<bool>(mode & os::OpenMode::read) && static_cast<bool>(mode & os::OpenMode::new_file)) ? CREATE_ALWAYS :
-         (static_cast<bool>(mode & os::OpenMode::read)) ? OPEN_EXISTING : 
-         (static_cast<bool>(mode & os::OpenMode::write) && static_cast<bool>(mode & os::OpenMode::new_file)) ? CREATE_ALWAYS : OPEN_ALWAYS,
-        (static_cast<bool>(mode & os::OpenMode::write)) ? FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH : FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING,
+        static_cast<bool>(mode & os::OpenMode::new_file) ? CREATE_ALWAYS :
+        static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append)) ? OPEN_ALWAYS : OPEN_EXISTING,
+        static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append))
+            ? (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH)
+            : (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING),
         NULL
     );
     if(file_handle == INVALID_HANDLE_VALUE){
@@ -122,10 +129,24 @@ bool FileStream::WindowsStreamBuffer::refil() noexcept{
         current_cursor = end_cursor = buffer;
         return false;
     }
+    offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(1));
     current_cursor = buffer;
     end_cursor = buffer + read;
+    std::cout << std::size_t(offset);
     return true;
 }
-
-
 #endif
+
+int main(){
+    int a = 12;
+    os::Ifstream file(L"data.bin", os::OpenMode::read | os::OpenMode::binary);
+    if(file.is_open()){
+        std::cout << "File Opened with Read method";
+        file.read(reinterpret_cast<unsigned char*>(&a), 4);
+        std::cout << std::endl << a;
+        file.read(reinterpret_cast<unsigned char*>(&a), 4);
+        std::cout << std::endl << a;
+        file.read(reinterpret_cast<unsigned char*>(&a), 4);
+        std::cout << std::endl << a;
+    }
+}

@@ -121,7 +121,9 @@ class StreamBuffer{
             private:
                 HANDLE file_handle;
             public:
-                WindowsStreamBuffer() = default;
+                WindowsStreamBuffer();
+                WindowsStreamBuffer(const char* file, os::OpenMode method);
+                WindowsStreamBuffer(const wchar_t* file, os::OpenMode method);
                 ~WindowsStreamBuffer() = default;
 
                 void open(const char* path, os::OpenMode mode);

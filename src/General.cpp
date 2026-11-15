@@ -88,11 +88,3 @@ StreamBuffer::StreamBuffer(){
     current_cursor = end_cursor = buffer;
     offset = static_cast<os::Cursor>(0);
 }
-
-
-int main(){
-    // std::cout << "Hello from General\n";
-    os::Wchar_t path = os::GlobalFunctions::ascii_to_wide("Hello theres");
-    std::wcout << path.data;
-    return 0;
-}

@@ -10,7 +10,8 @@ StreamBuffer::StreamBuffer(){
         PAGE_READWRITE
     ));
     if(!buffer) throw os::exceptions::BufferFailure{};
-    current_cursor = end_cursor = buffer;
+    current_cursor = buffer;
+    end_cursor = buffer + buffer_size;
     offset = os::Cursor::start;
 }
 
@@ -53,7 +54,7 @@ FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const wchar_t* file, os::Op
             default:
                 throw os::exceptions::FileUnknownError();
         }
-    }
+    }flags = method & os::OpenMode::binary;
 }
 
 void FileStream::WindowsStreamBuffer::open(const char* path, os::OpenMode mode){
@@ -88,7 +89,7 @@ void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mod
             default:
                 throw os::exceptions::FileUnknownError();
         }
-    }
+    }flags = mode & os::OpenMode::binary;
 }
 
 void FileStream::WindowsStreamBuffer::close(){
@@ -98,5 +99,33 @@ void FileStream::WindowsStreamBuffer::close(){
 bool FileStream::WindowsStreamBuffer::is_open() const{
     return file_handle != INVALID_HANDLE_VALUE;
 }
+
+os::Ifstream::Ifstream(const char* path, os::OpenMode mode) : Ifstream(os::GlobalFunctions::ascii_to_wide(path).data, mode){}
+
+os::Ifstream::Ifstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBuffer(path, mode){}
+
+bool FileStream::WindowsStreamBuffer::refil() noexcept{
+    if(file_handle == INVALID_HANDLE_VALUE){
+        current_cursor = end_cursor = buffer;
+        return false;
+    }
+    DWORD read{};
+    BOOL stat = ReadFile(
+        file_handle,
+        buffer,
+        buffer_size,
+        &read,
+        NULL
+    );
+
+    if(!stat || read == 0){
+        current_cursor = end_cursor = buffer;
+        return false;
+    }
+    current_cursor = buffer;
+    end_cursor = buffer + read;
+    return true;
+}
+
 
 #endif

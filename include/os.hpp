@@ -86,6 +86,7 @@ namespace os::exceptions{
     class FileWriteError : public std::exception{};
     class FileSeekError : public std::exception{};
     class FileUnknownError : public std::exception{};
+    class FileNotOpenError : public std::exception{};
     // Directory Handling Exceptions
     class DirectoryNotFound : public std::exception{};
     class DirectoryAlreadyExists : public std::exception{};
@@ -116,7 +117,7 @@ namespace os::GlobalFunctions{
 class StreamBuffer{
     protected:
         static constexpr std::uint32_t buffer_size = (PAGE_BUFFER_SIZE % 4096 == 0) ? PAGE_BUFFER_SIZE : 4096;
-    private:
+    protected:
         unsigned char* buffer;
         unsigned char* current_cursor;
         unsigned char* end_cursor;
@@ -142,6 +143,8 @@ class StreamBuffer{
         class WindowsStreamBuffer : public StreamBuffer{
             private:
                 HANDLE file_handle;
+            protected:
+                os::OpenMode flags;
             public:
                 WindowsStreamBuffer();
                 WindowsStreamBuffer(const char* file, os::OpenMode method);
@@ -154,6 +157,9 @@ class StreamBuffer{
 
                 // Stream state
                 bool is_open() const;
+
+                // Stream Modification
+                bool refil() noexcept;
         };
     }
 
@@ -184,7 +190,7 @@ namespace os{
             Ifstream& operator=(Ifstream&&) noexcept = delete;
 
             // Essential Read Operations
-            std::size_t read(void* container, std::size_t bytes) noexcept;
+            std::size_t read(unsigned char* container, std::size_t bytes) noexcept;
             unsigned char get();
 
             // Stream Positioning

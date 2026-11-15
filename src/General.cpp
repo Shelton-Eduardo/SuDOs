@@ -1,5 +1,9 @@
 #include "os.hpp"
 
+#ifndef MAX_GET_RANGE
+    #define MAX_GET_RANGE 30
+#endif
+
 os::OpenMode operator|(os::OpenMode lhs, os::OpenMode rhs){
     return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)|static_cast<std::size_t>(rhs));
 }
@@ -84,4 +88,50 @@ os::Char os::GlobalFunctions::wide_to_ascii(const wchar_t* wide_str){
     for(std::size_t i{}; i<len; ++i) path.data[i] = static_cast<char>(wide_str[i]);
     path.data[len] = '\0';
     return path;
+}
+
+std::size_t os::Ifstream::read(unsigned char* container, std::size_t bytes) noexcept{
+    if(!is_open() || bytes == 0) return 0;
+    std::size_t bytes_read{};
+    if(static_cast<bool>(flags & os::OpenMode::binary)){
+        while(bytes_read < bytes){
+            if(current_cursor == end_cursor) if(!refil()) break;
+            container[bytes_read++] = *current_cursor++;
+            }
+    }else{
+        while(bytes_read < bytes){
+            if(current_cursor == end_cursor) if(!refil()) break;
+            if(*current_cursor == '\r'){
+                if((current_cursor+1) == end_cursor){
+                    if(!refil){
+                        container[bytes_read++] = '\n';
+                        break;
+                    }if(*(current_cursor+1) == '\n'){
+                        container[bytes_read++] = '\n';
+                        current_cursor+=2;
+                        continue;
+                    }container[bytes_read++] = *current_cursor++;
+                    continue;
+                }
+            }
+            container[bytes_read++] = *current_cursor++;
+        }
+    }
+    return bytes_read;
+}
+
+unsigned char os::Ifstream::get(){
+    if(!is_open()) throw os::exceptions::FileNotOpenError();
+    if(static_cast<bool>(flags & os::OpenMode::binary)){
+        return *current_cursor;
+    }
+    for(std::size_t i{}; i < MAX_GET_RANGE; ++i){
+        if((current_cursor+i) >= end_cursor) return '\n';
+        if(*(current_cursor+i) == '\r' || *(current_cursor+i) == '\t') continue;
+        if(*(current_cursor+i) == '\n') return '\n'; 
+    }return '\n';
+}
+
+void os::Ifstream::seek(os::Cursor position){
+    
 }

@@ -151,32 +151,9 @@ class StreamBuffer{
                 void open(const char* path, os::OpenMode mode);
                 void open(const wchar_t* path, os::OpenMode mode);
                 void close();
-                std::size_t read(char* buffer, std::size_t size);
-                std::size_t write(const char* buffer, std::size_t size);
 
                 // Stream state
                 bool is_open() const;
-        };
-
-        class Ifstream : public WindowsStreamBuffer{
-            public:
-                Ifstream() = default;
-                Ifstream(const char* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary);
-                Ifstream(const wchar_t* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary);
-                ~Ifstream() = default;
-
-                Ifstream(const Ifstream&) = delete;
-                Ifstream(Ifstream&&) noexcept = delete;
-                Ifstream& operator=(const Ifstream&) = delete;
-                Ifstream& operator=(Ifstream&&) noexcept = delete;
-
-                // Essential Read Operations
-                std::size_t read(void* container, std::size_t bytes) noexcept;
-                unsigned char get();
-
-                // Stream Positioning
-                void seek(os::Cursor position);
-                os::Cursor tell() const;
         };
     }
 
@@ -184,4 +161,35 @@ class StreamBuffer{
     #include "os/linux.hpp"
 #endif
 
+namespace os{
+
+    class Ifstream :
+    #if defined(_WIN32) || defined(_WIN64)
+        FileStream::WindowsStreamBuffer
+    #else 
+        FileStream::LinuxStreamBuffer
+    #endif
+    {
+        public:
+            Ifstream() = default;
+            Ifstream(const char* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary);
+            #if defined(_WIN32) || defined(_WIN64)
+                Ifstream(const wchar_t* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary);
+            #endif
+            ~Ifstream() = default;
+
+            Ifstream(const Ifstream&) = delete;
+            Ifstream(Ifstream&&) noexcept = delete;
+            Ifstream& operator=(const Ifstream&) = delete;
+            Ifstream& operator=(Ifstream&&) noexcept = delete;
+
+            // Essential Read Operations
+            std::size_t read(void* container, std::size_t bytes) noexcept;
+            unsigned char get();
+
+            // Stream Positioning
+            void seek(os::Cursor position);
+            os::Cursor tell() const;
+            };
+    }
 #endif // OS_IMPLEMENTATION_HPP

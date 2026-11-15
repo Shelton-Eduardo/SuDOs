@@ -29,13 +29,74 @@ FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const char* file, os::OpenM
 FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const wchar_t* file, os::OpenMode method) : StreamBuffer(){
     file_handle = CreateFileW(
         file,
-        (method == os::OpenMode::read_write) ? GENERIC_READ | GENERIC_WRITE : (method == os::OpenMode::read) ? GENERIC_READ : GENERIC_WRITE,
-        FILE_SHARE_READ,
+        ((method & os::OpenMode::read_write) == os::OpenMode::read_write) ? GENERIC_READ | GENERIC_WRITE : (static_cast<bool>(method & os::OpenMode::read)) ? GENERIC_READ : GENERIC_WRITE,
+        static_cast<DWORD>((method >> 4) & static_cast<os::OpenMode>(0b0111)),
         NULL,
-        (method & os::OpenMode::write) ?  :,
-        [in]           DWORD                 dwFlagsAndAttributes,
-        [in, optional] HANDLE                hTemplateFile
+        (static_cast<bool>(method & os::OpenMode::read) && static_cast<bool>(method & os::OpenMode::new_file)) ? CREATE_ALWAYS :
+         (static_cast<bool>(method & os::OpenMode::read)) ? OPEN_EXISTING : 
+         (static_cast<bool>(method & os::OpenMode::write) && static_cast<bool>(method & os::OpenMode::new_file)) ? CREATE_ALWAYS : OPEN_ALWAYS,
+        (static_cast<bool>(method & os::OpenMode::write)) ? FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH : FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING,
+        NULL
     );
+    if(file_handle == INVALID_HANDLE_VALUE){
+        switch (GetLastError()) {
+            case ERROR_FILE_NOT_FOUND:
+                throw os::exceptions::FileNotFound();
+            case ERROR_PATH_NOT_FOUND:
+                throw os::exceptions::PathNotFound();
+            case ERROR_SHARING_VIOLATION:
+            case ERROR_ACCESS_DENIED:
+                throw os::exceptions::FileAccessDenied();
+            case ERROR_FILE_EXISTS:
+            case ERROR_ALREADY_EXISTS:
+                throw os::exceptions::FileAlreadyExists();
+            default:
+                throw os::exceptions::FileUnknownError();
+        }
+    }
+}
+
+void FileStream::WindowsStreamBuffer::open(const char* path, os::OpenMode mode){
+    return this->open(os::GlobalFunctions::ascii_to_wide(path).data, mode);
+}
+
+void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mode){
+    if(file_handle != INVALID_HANDLE_VALUE) return ;
+    file_handle = CreateFileW(
+        path,
+        ((mode & os::OpenMode::read_write) == os::OpenMode::read_write) ? GENERIC_READ | GENERIC_WRITE : (static_cast<bool>(mode & os::OpenMode::read)) ? GENERIC_READ : GENERIC_WRITE,
+        static_cast<DWORD>((mode >> 4) & static_cast<os::OpenMode>(0b0111)),
+        NULL,
+        (static_cast<bool>(mode & os::OpenMode::read) && static_cast<bool>(mode & os::OpenMode::new_file)) ? CREATE_ALWAYS :
+         (static_cast<bool>(mode & os::OpenMode::read)) ? OPEN_EXISTING : 
+         (static_cast<bool>(mode & os::OpenMode::write) && static_cast<bool>(mode & os::OpenMode::new_file)) ? CREATE_ALWAYS : OPEN_ALWAYS,
+        (static_cast<bool>(mode & os::OpenMode::write)) ? FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH : FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING,
+        NULL
+    );
+    if(file_handle == INVALID_HANDLE_VALUE){
+        switch (GetLastError()) {
+            case ERROR_FILE_NOT_FOUND:
+                throw os::exceptions::FileNotFound();
+            case ERROR_PATH_NOT_FOUND:
+                throw os::exceptions::PathNotFound();
+            case ERROR_SHARING_VIOLATION:
+            case ERROR_ACCESS_DENIED:
+                throw os::exceptions::FileAccessDenied();
+            case ERROR_FILE_EXISTS:
+            case ERROR_ALREADY_EXISTS:
+                throw os::exceptions::FileAlreadyExists();
+            default:
+                throw os::exceptions::FileUnknownError();
+        }
+    }
+}
+
+void FileStream::WindowsStreamBuffer::close(){
+    if(file_handle != INVALID_HANDLE_VALUE) CloseHandle(file_handle);
+}
+
+bool FileStream::WindowsStreamBuffer::is_open() const{
+    return file_handle != INVALID_HANDLE_VALUE;
 }
 
 #endif

@@ -17,13 +17,31 @@
 
 namespace os{
     enum class Cursor : std::size_t{start = 0};
+    /*
+        OpenMode Rules
+            Sharing Prop       Opening Prop
+        0b  0   0   0   0   '   0   0   0   0
+                                            read
+                                        write
+                                    append(1) / overwrite(0)
+                                binary(1) / text(0)
+                        Share Read
+                    Share Write
+                Share Delete
+            New File/Overwrite(1) Open_Existing(0)
+    */
     enum class OpenMode : std::uint8_t{
         read = 0b0000'0001,
         write = 0b0000'0010,
         read_write = 0b0000'0011,
-        append = 0b0000'0100,
-        binary = 0b0001'0000,
-        text = 0b0010'0000
+        append = 0b0000'0100, // if 0b0000'0000 it means Overwrite 
+        binary = 0b0000'1000, // if 0b0000'0000 it means text
+        share_read = 0b0001'0000,
+        share_write = 0b0010'0000,
+        share_read_write = 0b0011'0000,
+        share_delete = 0b0100'0000,
+        share_none = 0b0111'0000,
+        new_file = 0b1000'0000
     };
 
     struct Wchar_t{
@@ -55,6 +73,7 @@ namespace os{
 
 os::OpenMode operator|(os::OpenMode lhs, os::OpenMode rhs);
 os::OpenMode operator&(os::OpenMode lhs, os::OpenMode rhs);
+constexpr os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept;
 os::Cursor operator+(os::Cursor lhs, os::Cursor rhs);
 os::Cursor operator-(os::Cursor lhs, os::Cursor rhs);
 
@@ -66,6 +85,7 @@ namespace os::exceptions{
     class FileReadError : public std::exception{};
     class FileWriteError : public std::exception{};
     class FileSeekError : public std::exception{};
+    class FileUnknownError : public std::exception{};
     // Directory Handling Exceptions
     class DirectoryNotFound : public std::exception{};
     class DirectoryAlreadyExists : public std::exception{};

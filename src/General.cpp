@@ -8,6 +8,10 @@ os::OpenMode operator&(os::OpenMode lhs, os::OpenMode rhs){
     return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)&static_cast<std::size_t>(rhs));
 }
 
+constexpr os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept{
+    return static_cast<os::OpenMode>(static_cast<std::uint8_t>(lhs) >> bitshift);
+}
+
 os::Cursor operator+(os::Cursor lhs, os::Cursor rhs){
     return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)+static_cast<std::size_t>(rhs));
 }

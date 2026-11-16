@@ -134,6 +134,36 @@ bool FileStream::WindowsStreamBuffer::refil() noexcept{
     end_cursor = buffer + read;
     return true;
 }
+
+void os::Ifstream::seek(os::Cursor position){
+    LARGE_INTEGER aligned_pos{};
+        aligned_pos.QuadPart = static_cast<LONGLONG>(
+            (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size));
+    BOOL state = SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+        );
+    if(!refil()) return;
+    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
+    offset = position % static_cast<os::Cursor>(buffer_size);
+}
+
+void os::Ofstream::seek(os::Cursor position){
+    LARGE_INTEGER aligned_pos{};
+    aligned_pos.QuadPart = static_cast<LONGLONG>(position/static_cast<os::Cursor>(buffer_size) * static_cast<os::Cursor>(buffer_size));
+    BOOL state = SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+    );
+    if(!refil()) return;
+    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
+    offset = position % static_cast<os::Cursor>(buffer_size);
+}
+
 #endif
 
 int main(){

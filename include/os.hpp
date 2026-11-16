@@ -223,8 +223,10 @@ namespace os{
             Ofstream& operator=(const Ofstream&) = delete;
             Ofstream& operator=(Ofstream&&) noexcept = delete;
 
-            // Essential Read Operations
-            [[nodiscard]] std::size_t write(unsigned char* container, std::size_t bytes) noexcept;
+            // Essential Write Operations (binary)
+            [[nodiscard]] bool write(unsigned char* container, std::size_t bytes) noexcept;
+
+            void flush() noexcept;
 
             template <typename T>
             [[nodiscard]] std::size_t operator<<(T* buffer);

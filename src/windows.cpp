@@ -150,18 +150,36 @@ void os::Ifstream::seek(os::Cursor position){
     offset = position % static_cast<os::Cursor>(buffer_size);
 }
 
-void os::Ofstream::seek(os::Cursor position){
-    LARGE_INTEGER aligned_pos{};
-    aligned_pos.QuadPart = static_cast<LONGLONG>(position/static_cast<os::Cursor>(buffer_size) * static_cast<os::Cursor>(buffer_size));
-    BOOL state = SetFilePointerEx(
+os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : Ofstream(os::GlobalFunctions::ascii_to_wide(path).data, mode) {}
+
+os::Ofstream::Ofstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBuffer(path, mode){
+    if(static_cast<bool>(flags & os::OpenMode::append)){
+        LARGE_INTEGER file_size{};
+        LARGE_INTEGER setoffset{};
+        if(!GetFileSizeEx(file_handle, &file_size)) throw os::exceptions::FileReadError();
+        setoffset.QuadPart = file_size.QuadPart - (file_size.QuadPart % buffer_size);
+        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size);
+        if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
+        if((file_size.QuadPart % buffer_size) > 0) refil();
+        current_cursor = buffer + (file_size.QuadPart % buffer_size);
+        end_cursor = buffer + buffer_size;
+        if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
+    }
+}
+
+void os::Ofstream::flush() noexcept{
+    if(file_handle == INVALID_HANDLE_VALUE) return ;
+    DWORD written{};
+    BOOL state = WriteFile(
         file_handle,
-        aligned_pos,
-        NULL,
-        FILE_BEGIN
+        buffer,
+        buffer_size,
+        &written,
+        NULL
     );
-    if(!refil()) return;
-    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
-    offset = position % static_cast<os::Cursor>(buffer_size);
+    if(!state || written == 0) return ;
+    current_cursor = buffer;
+    end_cursor = buffer + buffer_size;
 }
 
 #endif

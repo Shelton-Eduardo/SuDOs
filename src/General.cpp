@@ -24,7 +24,12 @@ os::Cursor operator-(os::Cursor lhs, os::Cursor rhs){
     return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)-static_cast<std::size_t>(rhs));
 }
 
+os::Cursor operator+(os::Cursor lhs, int rhs){
+    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)-static_cast<std::size_t>(rhs));
+}
+
 os::Cursor operator-(os::Cursor lhs, int rhs){
+    if (lhs == os::Cursor::start) return static_cast<os::Cursor>(0);
     return static_cast<os::Cursor>(static_cast<std::size_t>(lhs) - static_cast<std::size_t>(rhs));
 }
 
@@ -34,6 +39,10 @@ os::Cursor operator/(os::Cursor lhs, os::Cursor rhs){
 
 os::Cursor operator*(os::Cursor lhs, os::Cursor rhs){
     return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)*static_cast<std::size_t>(rhs));
+}
+
+os::Cursor operator%(os::Cursor lhs, os::Cursor rhs){
+    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs) % static_cast<std::size_t>(rhs));
 }
 
 os::Wchar_t::Wchar_t(std::size_t len){
@@ -154,4 +163,29 @@ void os::Ifstream::seek(os::Cursor position){
         NULL,
         FILE_BEGIN
         );
+    if(!refil()) return;
+    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
+    offset = position % static_cast<os::Cursor>(buffer_size);
+}
+
+os::Cursor os::Ifstream::tell() const{
+    return (offset - 1)*static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
+}
+
+void os::Ofstream::seek(os::Cursor position){
+    LARGE_INTEGER aligned_pos{};
+    aligned_pos.QuadPart = static_cast<LONGLONG>(position/static_cast<os::Cursor>(buffer_size) * static_cast<os::Cursor>(buffer_size));
+    BOOL state = SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+    );
+    if(!refil()) return;
+    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
+    offset = position % static_cast<os::Cursor>(buffer_size);
+}
+
+os::Cursor os::Ofstream::tell() const{
+    return (offset - 1) * static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
 }

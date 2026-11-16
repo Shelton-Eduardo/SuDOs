@@ -135,3 +135,25 @@ bool FileStream::WindowsStreamBuffer::refil() noexcept{
     return true;
 }
 #endif
+
+int main(){
+    os::Ifstream file("data.bin", os::OpenMode::read | os::OpenMode::binary | os::OpenMode::append);
+    if(file.is_open()){
+        std::uint8_t num{};
+        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 1\n";
+        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
+        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 2\n";
+        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
+        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 3\n";
+        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
+        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 4\n";
+        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
+        os::Cursor offset = file.tell();
+        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 5, after asking for pointer\n";
+        else std::cout << "Var Read at 5 with value: " << static_cast<int>(num) << " after asking pointer\n";
+        std::cout << "Pointer is at general idx: " << static_cast<int>(offset) << std::endl;
+
+    }
+
+    return 0;
+}

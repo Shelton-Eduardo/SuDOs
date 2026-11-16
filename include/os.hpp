@@ -80,6 +80,7 @@ os::Cursor operator-(os::Cursor lhs, os::Cursor rhs);
 os::Cursor operator-(os::Cursor lhs, int rhs);
 os::Cursor operator/(os::Cursor lhs, os::Cursor rhs);
 os::Cursor operator*(os::Cursor lhs, os::Cursor rhs);
+os::Cursor operator%(os::Cursor lhs, os::Cursor rhs);
 
 
 namespace os::exceptions{
@@ -201,5 +202,38 @@ namespace os{
             void seek(os::Cursor position);
             os::Cursor tell() const;
             };
+    
+    class Ofstream :
+    #if defined(_WIN32) || defined(_WIN64)
+        public FileStream::WindowsStreamBuffer
+    #else 
+        public FileStream::LinuxStreamBuffer
+    #endif
+    {
+        public:
+            Ofstream() = default;
+            Ofstream(const char* path, os::OpenMode mode = os::OpenMode::write | os::OpenMode::binary | os::OpenMode::new_file);
+            #if defined(_WIN32) || defined(_WIN64)
+                Ofstream(const wchar_t* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary | os::OpenMode::new_file);
+            #endif
+            ~Ofstream() = default;
+
+            Ofstream(const Ofstream&) = delete;
+            Ofstream(Ofstream&&) noexcept = delete;
+            Ofstream& operator=(const Ofstream&) = delete;
+            Ofstream& operator=(Ofstream&&) noexcept = delete;
+
+            // Essential Read Operations
+            [[nodiscard]] std::size_t write(unsigned char* container, std::size_t bytes) noexcept;
+
+            template <typename T>
+            [[nodiscard]] std::size_t operator<<(T* buffer);
+
+            // Stream Positioning
+            void seek(os::Cursor position);
+            os::Cursor tell() const;
+            };
+    
     }
+    
 #endif // OS_IMPLEMENTATION_HPP

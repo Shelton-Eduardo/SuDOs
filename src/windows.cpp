@@ -96,7 +96,22 @@ void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mod
             default:
                 throw os::exceptions::FileUnknownError();
         }
-    }flags = mode & os::OpenMode::binary;
+    }
+    
+    if( static_cast<bool>(mode & os::OpenMode::write) && static_cast<bool>(mode & os::OpenMode::append)){
+        LARGE_INTEGER file_size{};
+        LARGE_INTEGER setoffset{};
+        if(!GetFileSizeEx(file_handle, &file_size)) throw os::exceptions::FileReadError();
+        setoffset.QuadPart = file_size.QuadPart - (file_size.QuadPart % buffer_size);
+        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size);
+        if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
+        if((file_size.QuadPart % buffer_size) > 0) refil();
+        current_cursor = buffer + (file_size.QuadPart % buffer_size);
+        end_cursor = buffer + buffer_size;
+        if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
+    }
+
+    flags = mode & os::OpenMode::binary;
 }
 
 void FileStream::WindowsStreamBuffer::close(){
@@ -135,6 +150,10 @@ bool FileStream::WindowsStreamBuffer::refil() noexcept{
     return true;
 }
 
+FileStream::WindowsStreamBuffer::~WindowsStreamBuffer(){
+    close();
+}
+
 void os::Ifstream::seek(os::Cursor position){
     LARGE_INTEGER aligned_pos{};
         aligned_pos.QuadPart = static_cast<LONGLONG>(
@@ -162,9 +181,9 @@ os::Ofstream::Ofstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBu
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
         if((file_size.QuadPart % buffer_size) > 0) refil();
         current_cursor = buffer + (file_size.QuadPart % buffer_size);
-        end_cursor = buffer + buffer_size;
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
     }
+    end_cursor = buffer + static_cast<std::size_t>(buffer_size);
 }
 
 void os::Ofstream::flush() noexcept{
@@ -182,25 +201,37 @@ void os::Ofstream::flush() noexcept{
     end_cursor = buffer + buffer_size;
 }
 
+void os::Ofstream::close(){
+    if(file_handle == INVALID_HANDLE_VALUE) return ;
+    std::size_t total_size = (static_cast<std::size_t>(offset) * buffer_size) + (current_cursor - buffer);
+    flush();
+    FILE_END_OF_FILE_INFO wflag{};
+    wflag.EndOfFile.QuadPart = total_size;
+    BOOL state = SetFileInformationByHandle(
+        file_handle,
+        FileEndOfFileInfo,
+        &wflag,
+        sizeof(wflag)
+    );
+    CloseHandle(file_handle);
+    current_cursor = end_cursor = buffer;
+    if(!state) throw os::exceptions::FileWriteError();
+}
+
+os::Ofstream::~Ofstream(){
+    close();
+}
+
+
+
 #endif
 
 int main(){
-    os::Ifstream file("data.bin", os::OpenMode::read | os::OpenMode::binary | os::OpenMode::append);
-    if(file.is_open()){
-        std::uint8_t num{};
-        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 1\n";
-        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
-        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 2\n";
-        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
-        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 3\n";
-        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
-        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 4\n";
-        else std::cout << "Var Read at 1 with value: " << static_cast<int>(num) << '\n';
-        os::Cursor offset = file.tell();
-        if(!file.read(reinterpret_cast<unsigned char*>(&num), 1)) std::cout << "Failed read at 5, after asking for pointer\n";
-        else std::cout << "Var Read at 5 with value: " << static_cast<int>(num) << " after asking pointer\n";
-        std::cout << "Pointer is at general idx: " << static_cast<int>(offset) << std::endl;
-
+    {
+        os::Ofstream file("data.bin", os::OpenMode::write | os::OpenMode::binary | os::OpenMode::new_file);
+        if(file.is_open()){
+            file.write("Hello Word", 10);
+        }
     }
 
     return 0;

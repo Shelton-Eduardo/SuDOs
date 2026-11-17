@@ -154,7 +154,7 @@ class StreamBuffer{
                 WindowsStreamBuffer();
                 WindowsStreamBuffer(const char* file, os::OpenMode method);
                 WindowsStreamBuffer(const wchar_t* file, os::OpenMode method);
-                ~WindowsStreamBuffer() = default;
+                ~WindowsStreamBuffer();
 
                 void open(const char* path, os::OpenMode mode);
                 void open(const wchar_t* path, os::OpenMode mode);
@@ -216,7 +216,7 @@ namespace os{
             #if defined(_WIN32) || defined(_WIN64)
                 Ofstream(const wchar_t* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary | os::OpenMode::new_file);
             #endif
-            ~Ofstream() = default;
+            ~Ofstream();
 
             Ofstream(const Ofstream&) = delete;
             Ofstream(Ofstream&&) noexcept = delete;
@@ -224,12 +224,21 @@ namespace os{
             Ofstream& operator=(Ofstream&&) noexcept = delete;
 
             // Essential Write Operations (binary)
-            [[nodiscard]] bool write(unsigned char* container, std::size_t bytes) noexcept;
+            void write(const unsigned char* container, std::size_t bytes) noexcept;
+            void write(const char* container, std::size_t bytes) noexcept;
+
 
             void flush() noexcept;
 
-            template <typename T>
-            [[nodiscard]] std::size_t operator<<(T* buffer);
+            void close();
+
+            [[nodiscard]] std::size_t operator<<(const char* buffer);
+            [[nodiscard]] std::size_t operator<<(const unsigned* buffer);
+            [[nodiscard]] std::size_t operator<<(int buffer);
+            [[nodiscard]] std::size_t operator<<(short buffer);
+            [[nodiscard]] std::size_t operator<<(float buffer);
+            [[nodiscard]] std::size_t operator<<(long long buffer);
+            [[nodiscard]] std::size_t operator<<(double buffer);
 
             // Stream Positioning
             void seek(os::Cursor position);

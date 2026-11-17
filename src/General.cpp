@@ -153,39 +153,54 @@ unsigned char os::Ifstream::get(){
     }return '\n';
 }
 
-void os::Ifstream::seek(os::Cursor position){
-    LARGE_INTEGER aligned_pos{};
-        aligned_pos.QuadPart = static_cast<LONGLONG>(
-            (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size));
-    BOOL state = SetFilePointerEx(
-        file_handle,
-        aligned_pos,
-        NULL,
-        FILE_BEGIN
-        );
-    if(!refil()) return;
-    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
-    offset = position % static_cast<os::Cursor>(buffer_size);
-}
 
 os::Cursor os::Ifstream::tell() const{
     return (offset - 1)*static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
 }
 
-void os::Ofstream::seek(os::Cursor position){
-    LARGE_INTEGER aligned_pos{};
-    aligned_pos.QuadPart = static_cast<LONGLONG>(position/static_cast<os::Cursor>(buffer_size) * static_cast<os::Cursor>(buffer_size));
-    BOOL state = SetFilePointerEx(
-        file_handle,
-        aligned_pos,
-        NULL,
-        FILE_BEGIN
-    );
-    if(!refil()) return;
-    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
-    offset = position % static_cast<os::Cursor>(buffer_size);
-}
-
 os::Cursor os::Ofstream::tell() const{
     return (offset - 1) * static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
+}
+
+void os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
+    if (file_handle == INVALID_HANDLE_VALUE) return ;
+    if (static_cast<bool>(flags & os::OpenMode::binary)){
+        for(std::size_t i{}; i < bytes; ++i){
+            if(current_cursor + i == end_cursor) flush();
+            *(current_cursor + i) = container[i];
+        }
+    }else{
+        auto write_byte = [&](unsigned char C){
+            if(current_cursor == end_cursor) flush();
+            *(current_cursor++) = C;
+        };
+        std::size_t i{};
+        while(i < bytes){
+            switch (container[i]) {
+                case '\n':
+                    #if !defined(__linux__)
+                        write_byte('\r');
+                    #endif
+                    write_byte('\n');
+                    ++i;
+                    break;
+                case '\r':
+                    if (i + 1 < bytes && container[i + 1] == '\n') {
+                        write_byte('\r');
+                        write_byte('\n');
+                        i+=2;
+                    } else{
+                        write_byte('\r');
+                    }
+                    break;
+                default:
+                    write_byte(container[i++]);
+                    break;
+            }
+        }
+    }
+}
+
+void os::Ofstream::write(const char* container, std::size_t bytes) noexcept{
+    return write(reinterpret_cast<const unsigned char*>(container), bytes);
 }

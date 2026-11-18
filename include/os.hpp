@@ -164,7 +164,7 @@ class StreamBuffer{
                 bool is_open() const;
 
                 // Stream Modification
-                bool refil() noexcept;
+                bool refil(bool update = true) noexcept;
         };
     }
 

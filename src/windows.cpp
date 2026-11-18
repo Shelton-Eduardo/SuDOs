@@ -29,36 +29,8 @@ FileStream::WindowsStreamBuffer::WindowsStreamBuffer() : StreamBuffer(), file_ha
 FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const char* file, os::OpenMode method) : WindowsStreamBuffer(os::GlobalFunctions::ascii_to_wide(file).data, method) {}
 
 FileStream::WindowsStreamBuffer::WindowsStreamBuffer(const wchar_t* file, os::OpenMode method) : StreamBuffer(){
-    file_handle = CreateFileW(
-        file,
-        ((method & os::OpenMode::read_write) == os::OpenMode::read_write) ? (GENERIC_READ | GENERIC_WRITE) :
-        static_cast<bool>(method & os::OpenMode::read)                     ? GENERIC_READ :
-        static_cast<bool>(method & (os::OpenMode::write | os::OpenMode::append)) ? GENERIC_WRITE : 0,
-        static_cast<DWORD>((method >> 4) & static_cast<os::OpenMode>(0b0111)),
-        NULL,
-        static_cast<bool>(method & os::OpenMode::new_file) ? CREATE_ALWAYS :
-        static_cast<bool>(method & (os::OpenMode::write | os::OpenMode::append)) ? OPEN_ALWAYS : OPEN_EXISTING,
-        static_cast<bool>(method & (os::OpenMode::write | os::OpenMode::append))
-            ? (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH)
-            : (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING),
-        NULL
-    );
-    if(file_handle == INVALID_HANDLE_VALUE){
-        switch (GetLastError()) {
-            case ERROR_FILE_NOT_FOUND:
-                throw os::exceptions::FileNotFound();
-            case ERROR_PATH_NOT_FOUND:
-                throw os::exceptions::PathNotFound();
-            case ERROR_SHARING_VIOLATION:
-            case ERROR_ACCESS_DENIED:
-                throw os::exceptions::FileAccessDenied();
-            case ERROR_FILE_EXISTS:
-            case ERROR_ALREADY_EXISTS:
-                throw os::exceptions::FileAlreadyExists();
-            default:
-                throw os::exceptions::FileUnknownError();
-        }
-    }flags = method & os::OpenMode::binary;
+    file_handle = INVALID_HANDLE_VALUE;
+    open(file, method);
 }
 
 void FileStream::WindowsStreamBuffer::open(const char* path, os::OpenMode mode){
@@ -68,19 +40,22 @@ void FileStream::WindowsStreamBuffer::open(const char* path, os::OpenMode mode){
 void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mode){
     if(file_handle != INVALID_HANDLE_VALUE) return ;
         file_handle = CreateFileW(
-        path,
-        ((mode & os::OpenMode::read_write) == os::OpenMode::read_write) ? (GENERIC_READ | GENERIC_WRITE) :
-        static_cast<bool>(mode & os::OpenMode::read)                     ? GENERIC_READ :
-        static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append)) ? GENERIC_WRITE : 0,
-        static_cast<DWORD>((mode >> 4) & static_cast<os::OpenMode>(0b0111)),
-        NULL,
-        static_cast<bool>(mode & os::OpenMode::new_file) ? CREATE_ALWAYS :
-        static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append)) ? OPEN_ALWAYS : OPEN_EXISTING,
-        static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append))
-            ? (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH)
-            : (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING),
-        NULL
-    );
+            path,
+            ((mode & os::OpenMode::read_write) == os::OpenMode::read_write || static_cast<bool>(mode & os::OpenMode::append))
+                ? (GENERIC_READ | GENERIC_WRITE) :
+            static_cast<bool>(mode & os::OpenMode::read)
+                ? GENERIC_READ :
+            static_cast<bool>(mode & os::OpenMode::write)
+                ? GENERIC_WRITE : 0,
+            static_cast<DWORD>((mode >> 4) & static_cast<os::OpenMode>(0b0111)) | FILE_SHARE_READ,
+            NULL,
+            static_cast<bool>(mode & os::OpenMode::new_file) ? CREATE_ALWAYS :
+            static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append)) ? OPEN_ALWAYS : OPEN_EXISTING,
+            static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append))
+                ? (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH)
+                : (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING),
+            NULL
+        );
     if(file_handle == INVALID_HANDLE_VALUE){
         switch (GetLastError()) {
             case ERROR_FILE_NOT_FOUND:
@@ -105,13 +80,13 @@ void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mod
         setoffset.QuadPart = file_size.QuadPart - (file_size.QuadPart % buffer_size);
         offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size);
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
-        if((file_size.QuadPart % buffer_size) > 0) refil();
+        if((file_size.QuadPart % buffer_size) > 0) refil(false);
         current_cursor = buffer + (file_size.QuadPart % buffer_size);
         end_cursor = buffer + buffer_size;
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
     }
 
-    flags = mode & os::OpenMode::binary;
+    flags = mode;
 }
 
 void FileStream::WindowsStreamBuffer::close(){
@@ -126,7 +101,7 @@ os::Ifstream::Ifstream(const char* path, os::OpenMode mode) : Ifstream(os::Globa
 
 os::Ifstream::Ifstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBuffer(path, mode){}
 
-bool FileStream::WindowsStreamBuffer::refil() noexcept{
+bool FileStream::WindowsStreamBuffer::refil(bool update) noexcept{
     if(file_handle == INVALID_HANDLE_VALUE){
         current_cursor = end_cursor = buffer;
         return false;
@@ -142,9 +117,10 @@ bool FileStream::WindowsStreamBuffer::refil() noexcept{
 
     if(!stat || read == 0){
         current_cursor = end_cursor = buffer;
+        DWORD err = stat ? 0 : GetLastError();
         return false;
     }
-    offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(1));
+    if(update) offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(1));
     current_cursor = buffer;
     end_cursor = buffer + read;
     return true;
@@ -172,17 +148,6 @@ void os::Ifstream::seek(os::Cursor position){
 os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : Ofstream(os::GlobalFunctions::ascii_to_wide(path).data, mode) {}
 
 os::Ofstream::Ofstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBuffer(path, mode){
-    if(static_cast<bool>(flags & os::OpenMode::append)){
-        LARGE_INTEGER file_size{};
-        LARGE_INTEGER setoffset{};
-        if(!GetFileSizeEx(file_handle, &file_size)) throw os::exceptions::FileReadError();
-        setoffset.QuadPart = file_size.QuadPart - (file_size.QuadPart % buffer_size);
-        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size);
-        if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
-        if((file_size.QuadPart % buffer_size) > 0) refil();
-        current_cursor = buffer + (file_size.QuadPart % buffer_size);
-        if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
-    }
     end_cursor = buffer + static_cast<std::size_t>(buffer_size);
 }
 
@@ -197,6 +162,7 @@ void os::Ofstream::flush() noexcept{
         NULL
     );
     if(!state || written == 0) return ;
+    offset = offset + static_cast<os::Cursor>(1ULL);
     current_cursor = buffer;
     end_cursor = buffer + buffer_size;
 }
@@ -214,7 +180,9 @@ void os::Ofstream::close(){
         sizeof(wflag)
     );
     CloseHandle(file_handle);
+    file_handle = INVALID_HANDLE_VALUE;
     current_cursor = end_cursor = buffer;
+    offset = os::Cursor::start;
     if(!state) throw os::exceptions::FileWriteError();
 }
 
@@ -222,17 +190,4 @@ os::Ofstream::~Ofstream(){
     close();
 }
 
-
-
 #endif
-
-int main(){
-    {
-        os::Ofstream file("data.bin", os::OpenMode::write | os::OpenMode::binary | os::OpenMode::new_file);
-        if(file.is_open()){
-            file.write("Hello Word", 10);
-        }
-    }
-
-    return 0;
-}

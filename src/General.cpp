@@ -164,16 +164,15 @@ os::Cursor os::Ofstream::tell() const{
 
 void os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
     if (file_handle == INVALID_HANDLE_VALUE) return ;
-    if (static_cast<bool>(flags & os::OpenMode::binary)){
-        for(std::size_t i{}; i < bytes; ++i){
-            if(current_cursor + i == end_cursor) flush();
-            *(current_cursor + i) = container[i];
-        }
-    }else{
-        auto write_byte = [&](unsigned char C){
+
+    auto write_byte = [&](unsigned char C){
             if(current_cursor == end_cursor) flush();
             *(current_cursor++) = C;
         };
+
+    if (static_cast<bool>(flags & os::OpenMode::binary)){
+        for(std::size_t i{}; i < bytes; ++i) write_byte(container[i]);
+    }else{
         std::size_t i{};
         while(i < bytes){
             switch (container[i]) {

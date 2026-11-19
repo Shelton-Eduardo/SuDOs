@@ -3,28 +3,33 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "C/C++: Build All Project Files",
+            "label": "Build: Release (-O2)",
             "command": "/usr/bin/g++",
             "windows": {
                 "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
                 "args": [
+                    "-std=c++20",
+                    "-O2",
+                    "-DNDEBUG",
+                    "-s",
                     "-fdiagnostics-color=always",
-                    "-g",
                     "${workspaceFolder}\\src\\*.cpp",
                     "-I${workspaceFolder}\\include",
                     "-o",
                     "${workspaceFolder}\\Executables\\main.exe"
                 ],
                 "options": {
-                    "cwd": "${fileDirname}"
+                    "cwd": "${workspaceFolder}"
                 }
             },
             "linux": {
                 "command": "/usr/bin/g++",
                 "args": [
                     "-std=c++20",
+                    "-O2",
+                    "-DNDEBUG",
+                    "-s",
                     "-fdiagnostics-color=always",
-                    "-g",
                     "${workspaceFolder}/src/*.cpp",
                     "-I${workspaceFolder}/include",
                     "-o",
@@ -41,7 +46,49 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Compiles all .cpp files in src/ with g++"
+            "detail": "Default Release build (-O2, no debugging overhead) for Windows & Linux"
+        },
+        {
+            "type": "shell",
+            "label": "Build: Debug (-g)",
+            "command": "/usr/bin/g++",
+            "windows": {
+                "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+                "args": [
+                    "-std=c++20",
+                    "-g",
+                    "-O0",
+                    "-fdiagnostics-color=always",
+                    "${workspaceFolder}\\src\\*.cpp",
+                    "-I${workspaceFolder}\\include",
+                    "-o",
+                    "${workspaceFolder}\\Executables\\main_debug.exe"
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            },
+            "linux": {
+                "command": "/usr/bin/g++",
+                "args": [
+                    "-std=c++20",
+                    "-g",
+                    "-O0",
+                    "-fdiagnostics-color=always",
+                    "${workspaceFolder}/src/*.cpp",
+                    "-I${workspaceFolder}/include",
+                    "-o",
+                    "${workspaceFolder}/Executables/main_debug"
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "Debug build (-g -O0) triggered automatically by the debugger"
         }
     ]
 }

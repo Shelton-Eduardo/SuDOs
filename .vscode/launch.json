@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug main.exe",
+            "name": "Debug (Windows)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/Executables/main.exe",
+            "program": "${workspaceFolder}/Executables/main_debug.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -13,6 +13,7 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "C:/msys64/ucrt64/bin/gdb.exe",
+            "preLaunchTask": "Build: Debug (-g)",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -22,10 +23,10 @@
             ]
         },
         {
-            "name": "Debug main (Linux)",
+            "name": "Debug (Linux)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/Executables/main",
+            "program": "${workspaceFolder}/Executables/main_debug",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -33,6 +34,7 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb",
+            "preLaunchTask": "Build: Debug (-g)",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

@@ -2,19 +2,37 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cppbuild",
+            "type": "shell",
             "label": "C/C++: Build All Project Files",
-            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
-            "args": [
-                "-fdiagnostics-color=always",
-                "-g",
-                "${workspaceFolder}\\src\\*.cpp",
-                "-I${workspaceFolder}\\include",
-                "-o",
-                "${workspaceFolder}\\Executables\\main.exe"
-            ],
-            "options": {
-                "cwd": "${fileDirname}"
+            "command": "/usr/bin/g++",
+            "windows": {
+                "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+                "args": [
+                    "-fdiagnostics-color=always",
+                    "-g",
+                    "${workspaceFolder}\\src\\*.cpp",
+                    "-I${workspaceFolder}\\include",
+                    "-o",
+                    "${workspaceFolder}\\Executables\\main.exe"
+                ],
+                "options": {
+                    "cwd": "${fileDirname}"
+                }
+            },
+            "linux": {
+                "command": "/usr/bin/g++",
+                "args": [
+                    "-std=c++20",
+                    "-fdiagnostics-color=always",
+                    "-g",
+                    "${workspaceFolder}/src/*.cpp",
+                    "-I${workspaceFolder}/include",
+                    "-o",
+                    "${workspaceFolder}/Executables/main"
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
             },
             "problemMatcher": [
                 "$gcc"
@@ -23,7 +41,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Compiles all .cpp files in src/ with MSYS2 g++"
+            "detail": "Compiles all .cpp files in src/ with g++"
         }
     ]
 }

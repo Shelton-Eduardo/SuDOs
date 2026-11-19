@@ -42,7 +42,8 @@ namespace os{
         share_read_write = 0b0011'0000,
         share_delete     = 0b0100'0000,
         share_all        = 0b0111'0000,
-        new_file         = 0b1000'0000
+        new_file         = 0b1000'0000,
+        NONE             = 0b0000'0000
     };
 
     struct Wchar_t{
@@ -161,7 +162,7 @@ class StreamBuffer{
                 void close();
 
                 // Stream state
-                bool is_open() const;
+                [[nodiscard]] bool is_open() const;
 
                 // Stream Modification
                 bool refil(bool update = true) noexcept;
@@ -169,7 +170,36 @@ class StreamBuffer{
     }
 
 #elif defined(__linux__)
-    #include "os/linux.hpp"
+    #define _GNU_SOURCE
+    #include <sys/mman.h>
+    #include <unistd.h>
+    #include <fcntl.h>
+    #include <cerrno>
+
+    namespace FileStream{
+        // FileStream class for Linux/Debian Enviroments
+        class LinuxStreamBuffer : public StreamBuffer{
+            private:
+                int file_handle;
+                os::OpenMode flags;
+            public:
+                LinuxStreamBuffer();
+                LinuxStreamBuffer(const char* file, os::OpenMode method);
+                LinuxStreamBuffer(const wchar_t* file, os::OpenMode method);
+                ~LinuxStreamBuffer() noexcept;
+
+                void open(const char* path, os::OpenMode method);
+                void open(const wchar_t* path, os::OpenMode method);
+                void close();
+
+                // Stream state
+                [[nodiscard]] bool is_open() const;
+
+                // Stream Modification
+                bool refil(bool update = true) noexcept;
+        };
+    }
+    
 #endif
 
 namespace os{

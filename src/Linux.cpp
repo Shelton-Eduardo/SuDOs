@@ -39,56 +39,34 @@ FileStream::LinuxStreamBuffer::~LinuxStreamBuffer() noexcept{
     file_handle = -1;
 }
 
-void FileStream::LinuxStreamBuffer::open(const char* path, os::OpenMode mode) {
-    if (file_handle != -1) return;
-
-    int flags = 0;
-    if ((mode & os::OpenMode::read_write) == os::OpenMode::read_write || 
-        static_cast<bool>(mode & os::OpenMode::append)) {
-        flags |= O_RDWR;
-    } else if (static_cast<bool>(mode & os::OpenMode::read)) {
-        flags |= O_RDONLY;
-    } else if (static_cast<bool>(mode & os::OpenMode::write)) {
-        flags |= O_WRONLY;
-    }
-    // Handle structural append mode flag
-    if (static_cast<bool>(mode & os::OpenMode::append)) {
-        flags |= O_APPEND;
-    }
-    // Determine Creation Disposition Flags
-    if (static_cast<bool>(mode & os::OpenMode::new_file)) {
-        flags |= O_CREAT | O_TRUNC;
-    } else if (static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append))) {
-        flags |= O_CREAT;
-    }
-
-    flags |= O_DIRECT; 
-    
-    if (static_cast<bool>(mode & (os::OpenMode::write | os::OpenMode::append))) {
-        flags |= O_SYNC; 
-    }
-
-    file_handle = ::open(path, flags, 0666);
-
-    if (file_handle != -1 && (mode & os::OpenMode::share_all) != os::OpenMode::share_all) {
-        int lock_flags = 0;
-        
-        if (!static_cast<bool>(mode & os::OpenMode::share_write)) {
-            lock_flags = (flags & O_RDONLY) ? LOCK_SH : LOCK_EX;
-        }
-        if ((mode & os::OpenMode::share_all) == os::OpenMode::share_none) {
-            lock_flags = LOCK_EX;
-        }
-
-        if (lock_flags != 0 && flock(file_handle, lock_flags | LOCK_NB) == -1) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                ::close(file_handle);
-                file_handle = -1;
-                throw os::exceptions::FileAccessDenied(); // Sharing Violation
-            }
-        }
-    }
-
+void FileStream::LinuxStreamBuffer::open(const char* path, os::OpenMode mode){
+    if(file_handle != -1) return ;
+    file_handle = ::open(
+        path,
+        // Read_Write Conditions
+        ((mode & os::OpenMode::read_write) == os::OpenMode::read_write) ?
+            (static_cast<bool>(mode & os::OpenMode::new_file)) ? // Cond True (read_write + new_file)
+                (static_cast<bool>(mode & os::OpenMode::append)) ?
+                    O_RDWR | O_DIRECT | O_DSYNC | O_CREAT : O_RDWR | O_DIRECT | O_DSYNC | O_CREAT | O_TRUNC
+                : // Cond False (read_write + existing file)
+                (static_cast<bool>(mode & os::OpenMode::append)) ?
+                    O_RDWR | O_DIRECT | O_DSYNC : O_RDWR | O_DIRECT | O_DSYNC | O_TRUNC
+        :
+        // Cond False (ReadWrite) -> Write Only Conditions
+        (static_cast<bool>(mode & os::OpenMode::write)) ?
+            (static_cast<bool>(mode & os::OpenMode::new_file)) ? // Cond True (write + new_file)
+                (static_cast<bool>(mode & os::OpenMode::append)) ?
+                    O_RDWR | O_DIRECT | O_DSYNC | O_CREAT : O_WRONLY | O_DIRECT | O_DSYNC | O_CREAT | O_TRUNC
+                : // Cond False (write + existing file)
+                (static_cast<bool>(mode & os::OpenMode::append)) ?
+                    O_RDWR | O_DIRECT | O_DSYNC : O_WRONLY | O_DIRECT | O_DSYNC | O_TRUNC
+        :
+        // Cond False (Write) -> Read Only by default
+        (static_cast<bool>(mode & os::OpenMode::new_file)) ?
+            O_RDONLY | O_DIRECT | O_CREAT : O_RDONLY | O_DIRECT
+        ,
+        0666
+    );
     if (file_handle == -1) {
         switch (errno) {
             case ENOENT:
@@ -97,13 +75,38 @@ void FileStream::LinuxStreamBuffer::open(const char* path, os::OpenMode mode) {
                 throw os::exceptions::PathNotFound();
             case EACCES:
             case EPERM:
+            case EROFS:
+            case ETXTBSY:
+            case EBUSY: // Equivalent to ERROR_SHARING_VIOLATION if flock/FUSE denies access
                 throw os::exceptions::FileAccessDenied();
             case EEXIST:
                 throw os::exceptions::FileAlreadyExists();
+            case ENAMETOOLONG:
+                throw os::exceptions::PathTooLong();
+            case EISDIR:
+            case ELOOP:
+            case EFAULT:
+                throw os::exceptions::PathInvalid();
             default:
                 throw os::exceptions::FileUnknownError();
         }
     }
+
+    if (static_cast<bool>(mode & os::OpenMode::write) && static_cast<bool>(mode & os::OpenMode::append)) {
+        struct stat st {};
+        if (::fstat(file_handle, &st) == -1) throw os::exceptions::FileReadError();
+        const off_t file_size = st.st_size;
+        const off_t setoffset = file_size - (file_size % buffer_size);
+        offset = static_cast<os::Cursor>(file_size / buffer_size);
+        if (::lseek(file_handle, setoffset, SEEK_SET) == -1) throw os::exceptions::FileSeekError();
+        if ((file_size % buffer_size) > 0) refil(false);
+
+        current_cursor = buffer + (file_size % buffer_size);
+        end_cursor = buffer + buffer_size;
+
+        if (::lseek(file_handle, setoffset, SEEK_SET) == -1) throw os::exceptions::FileSeekError();
+    }
+
 }
 
 #endif 

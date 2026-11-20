@@ -42,7 +42,7 @@ namespace os{
         share_read_write = 0b0011'0000,
         share_delete     = 0b0100'0000,
         share_all        = 0b0111'0000,
-        new_file         = 0b1000'0000,
+        new_file         = 0b1000'0000, // if 0 it means find existing
         NONE             = 0b0000'0000
     };
 
@@ -172,6 +172,7 @@ class StreamBuffer{
 #elif defined(__linux__)
     #define _GNU_SOURCE
     #include <sys/mman.h>
+    #include <sys/stat.h>
     #include <unistd.h>
     #include <fcntl.h>
     #include <cerrno>

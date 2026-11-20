@@ -35,7 +35,6 @@ FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const wchar_t* file, os::OpenMo
 
 FileStream::LinuxStreamBuffer::~LinuxStreamBuffer() noexcept{
     if(file_handle == -1) return ;
-    if(::close(file_handle) != 0) throw os::exceptions::FileUnknownError{};
     file_handle = -1;
 }
 
@@ -106,7 +105,38 @@ void FileStream::LinuxStreamBuffer::open(const char* path, os::OpenMode mode){
 
         if (::lseek(file_handle, setoffset, SEEK_SET) == -1) throw os::exceptions::FileSeekError();
     }
+    flags = mode;
 
 }
 
+void FileStream::LinuxStreamBuffer::open(const wchar_t* path, os::OpenMode method){
+    return this->open(os::GlobalFunctions::wide_to_ascii(path).data, method);
+}
+
+void FileStream::LinuxStreamBuffer::close(){
+    if(file_handle == -1) return ;
+    if(::close(file_handle) == 0) return ;
+    switch (errno)
+    {
+    case EBADF:
+        throw os::exceptions::FileUnknownError{};
+    case EINTR:
+        throw os::exceptions::SystemFailureError{};
+    case EIO:
+        throw os::exceptions::SystemFailureError{};
+    case ENOSPC:
+    case EDQUOT:
+        throw os::exceptions::SystemFailureError{};    
+    default:
+        throw os::exceptions::FileUnknownError{};
+    }
+}
+
 #endif 
+
+#include <iostream>
+
+int main(){
+    std::cout << "Hello Word";
+    return 0;
+}

@@ -163,7 +163,11 @@ os::Cursor os::Ofstream::tell() const{
 }
 
 void os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
-    if (file_handle == INVALID_HANDLE_VALUE) return ;
+    #if !defined(__linux__)
+        if (file_handle == INVALID_HANDLE_VALUE) return ;
+    #else
+        if (file_handle == -1) return ;
+    #endif
 
     auto write_byte = [&](unsigned char C){
             if(current_cursor == end_cursor) flush();

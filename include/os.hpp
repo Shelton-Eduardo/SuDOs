@@ -114,6 +114,7 @@ namespace os::exceptions{
     class PathNotNormalized : public std::exception{};
     // Memory Handling Exceptions
     class BufferFailure : public std::exception{};
+    class SystemFailureError : public std::exception{};
 }
 
 namespace os::GlobalFunctions{
@@ -170,7 +171,9 @@ class StreamBuffer{
     }
 
 #elif defined(__linux__)
-    #define _GNU_SOURCE
+        #ifndef _GNU_SOURCE
+            #define _GNU_SOURCE
+        #endif
     #include <sys/mman.h>
     #include <sys/stat.h>
     #include <unistd.h>
@@ -180,7 +183,7 @@ class StreamBuffer{
     namespace FileStream{
         // FileStream class for Linux/Debian Enviroments
         class LinuxStreamBuffer : public StreamBuffer{
-            private:
+            protected:
                 int file_handle;
                 os::OpenMode flags;
             public:

@@ -38,7 +38,6 @@ FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const wchar_t* file, os::OpenMo
 FileStream::LinuxStreamBuffer::~LinuxStreamBuffer() noexcept{
     if(file_handle == -1) return ;
     this->close();
-    file_handle = -1;
 }
 
 void FileStream::LinuxStreamBuffer::open(const char* path, os::OpenMode mode){
@@ -219,8 +218,9 @@ void os::Ofstream::close(){
 
 int main(){
     std::uint8_t num{6};
-    os::Ofstream file("test.bin", os::OpenMode::write | os::OpenMode::binary | os::OpenMode::append);
-    file.write(reinterpret_cast<const unsigned char*>(&num), sizeof(num));
-    std::cout << "wrote 1\n";
+    os::Ofstream file("test.bin", os::OpenMode::write | os::OpenMode::new_file);
+    file.write("Hello", 5);
+    file.write("Hello Word", 10);
+    file.write("Hello Word", 10);
     return 0;
 }

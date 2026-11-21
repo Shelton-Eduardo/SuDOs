@@ -201,6 +201,7 @@ void os::Ofstream::write(const unsigned char* container, std::size_t bytes) noex
                     break;
             }
         }
+        write_byte('\n');
     }
 }
 

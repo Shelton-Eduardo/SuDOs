@@ -1,4 +1,5 @@
 #include "os.hpp"
+#include <iostream>
 
 #if defined(__linux__)
 
@@ -28,6 +29,7 @@ StreamBuffer::~StreamBuffer(){
 FileStream::LinuxStreamBuffer::LinuxStreamBuffer() : StreamBuffer(), file_handle(-1), flags(os::OpenMode::NONE){}
 
 FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const char* file, os::OpenMode method) : StreamBuffer(){
+    file_handle = -1;
     open(file, method);
 }
 
@@ -35,6 +37,7 @@ FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const wchar_t* file, os::OpenMo
 
 FileStream::LinuxStreamBuffer::~LinuxStreamBuffer() noexcept{
     if(file_handle == -1) return ;
+    this->close();
     file_handle = -1;
 }
 
@@ -113,6 +116,7 @@ void FileStream::LinuxStreamBuffer::open(const wchar_t* path, os::OpenMode metho
     return this->open(os::GlobalFunctions::wide_to_ascii(path).data, method);
 }
 
+
 void FileStream::LinuxStreamBuffer::close(){
     if(file_handle == -1) return ;
     if(::close(file_handle) == 0) return ;
@@ -130,13 +134,89 @@ void FileStream::LinuxStreamBuffer::close(){
     default:
         throw os::exceptions::FileUnknownError{};
     }
+    file_handle = -1;
 }
+
+bool FileStream::LinuxStreamBuffer::is_open() const{
+    return file_handle != -1;
+}
+
+
+bool FileStream::LinuxStreamBuffer::refil(bool update) noexcept{
+    if(file_handle == -1){
+        current_cursor = end_cursor = buffer;
+        return false;
+    }
+    ssize_t read = ::read(
+        file_handle,
+        buffer,
+        buffer_size
+    );
+    if(read == -1){ // the function is no except, so we cant throw but during debugging we need to know whats going
+        current_cursor = end_cursor = buffer;
+        switch (errno){
+            case EAGAIN:
+                return false;
+            case EBADF:
+                return false;
+            case EINTR:
+                return false;
+            case EFAULT:
+                return false;
+            case EINVAL:
+            case EIO:
+                return false;
+            default:
+                return false;
+        }
+    }
+    if (read == 0) return false;
+    if(update) offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(read/buffer_size));
+    current_cursor = buffer;
+    end_cursor = buffer + read;
+    return true;
+}
+
+os::Ifstream::Ifstream(const char* path, os::OpenMode mode) : LinuxStreamBuffer(path, mode){}
+
+os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : LinuxStreamBuffer(path, mode){
+    end_cursor = buffer + static_cast<std::size_t>(buffer_size);
+}
+
+void os::Ofstream::flush() noexcept{
+    if(file_handle == -1) return ;
+    ssize_t written = ::write(
+        file_handle,
+        buffer,
+        buffer_size
+    );
+    if(written == -1){
+        // Debugging purposes;
+        std::cout << 1+1 << std::endl;
+        return ;
+    }else if(written < buffer_size){
+        // disk is full
+        std::cout << 2+2 << std::endl;
+        return ;
+    }
+    offset = offset + static_cast<os::Cursor>(1ULL);
+    current_cursor = buffer;
+    end_cursor = buffer + buffer_size;
+}
+
 
 #endif 
 
-#include <iostream>
-
 int main(){
-    std::cout << "Hello Word";
+    std::uint8_t num;
+    os::Ifstream file("test.bin", os::OpenMode::read | os::OpenMode::binary);
+    file.read(reinterpret_cast<unsigned char*>(&num), 1);
+    std::cout << (int)num << std::endl;
+    file.read(reinterpret_cast<unsigned char*>(&num), 1);
+    std::cout << (int)num << std::endl;
+    file.read(reinterpret_cast<unsigned char*>(&num), 1);
+    std::cout << (int)num << std::endl;
+    file.read(reinterpret_cast<unsigned char*>(&num), 1);
+    std::cout << (int)num << std::endl;
     return 0;
 }

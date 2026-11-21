@@ -204,19 +204,23 @@ void os::Ofstream::flush() noexcept{
     end_cursor = buffer + buffer_size;
 }
 
+os::Ofstream::~Ofstream(){
+    close();
+}
+
+void os::Ofstream::close(){
+    if(file_handle == -1) return ;
+    std::size_t total_size = static_cast<std::size_t>(offset)*buffer_size + (current_cursor - buffer);
+    flush();
+    ftruncate64(file_handle, total_size);
+}
 
 #endif 
 
 int main(){
-    std::uint8_t num;
-    os::Ifstream file("test.bin", os::OpenMode::read | os::OpenMode::binary);
-    file.read(reinterpret_cast<unsigned char*>(&num), 1);
-    std::cout << (int)num << std::endl;
-    file.read(reinterpret_cast<unsigned char*>(&num), 1);
-    std::cout << (int)num << std::endl;
-    file.read(reinterpret_cast<unsigned char*>(&num), 1);
-    std::cout << (int)num << std::endl;
-    file.read(reinterpret_cast<unsigned char*>(&num), 1);
-    std::cout << (int)num << std::endl;
+    std::uint8_t num{6};
+    os::Ofstream file("test.bin", os::OpenMode::write | os::OpenMode::binary | os::OpenMode::append);
+    file.write(reinterpret_cast<const unsigned char*>(&num), sizeof(num));
+    std::cout << "wrote 1\n";
     return 0;
 }

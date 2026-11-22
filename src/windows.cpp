@@ -78,7 +78,7 @@ void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mod
         LARGE_INTEGER setoffset{};
         if(!GetFileSizeEx(file_handle, &file_size)) throw os::exceptions::FileReadError();
         setoffset.QuadPart = file_size.QuadPart - (file_size.QuadPart % buffer_size);
-        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size);
+        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size + 1);
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
         if((file_size.QuadPart % buffer_size) > 0) refil(false);
         current_cursor = buffer + (file_size.QuadPart % buffer_size);
@@ -145,23 +145,6 @@ void os::Ifstream::seek(os::Cursor position){
     offset = position / static_cast<os::Cursor>(buffer_size);
 }
 
-void os::Ofstream::seek(os::Cursor position){
-    flush();
-    LARGE_INTEGER aligned_pos{};
-        aligned_pos.QuadPart = static_cast<LONGLONG>(
-            (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size)
-        );
-    if(!SetFilePointerEx(
-        file_handle,
-        aligned_pos,
-        NULL,
-        FILE_BEGIN
-    )) throw os::exceptions::FileSeekError{};
-    if(!refil()) return ;
-    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
-    offset = position / static_cast<os::Cursor>(buffer_size);
-}
-
 os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : Ofstream(os::GlobalFunctions::ascii_to_wide(path).data, mode) {}
 
 os::Ofstream::Ofstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBuffer(path, mode){
@@ -211,25 +194,11 @@ os::Ofstream::~Ofstream(){
 
 int main(){
     {
-        os::Ifstream file("test.bin", os::OpenMode::binary | os::OpenMode::read);
-        char character = 0;
-        auto idx = file.tell();
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        std::cout << "The character is: " << character << std::endl;
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        std::cout << "The character is: " << character << std::endl;
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        std::cout << "The character is: " << character << std::endl;
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        idx = file.tell();
-        file.seek(static_cast<os::Cursor>(0));
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        std::cout << "The character is: " << character << std::endl;
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        std::cout << "The character is: " << character << std::endl;
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
-        std::cout << "The character is: " << character << std::endl;
-        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        os::Ifstream file("test2.bin", os::OpenMode::read | os::OpenMode::append | os::OpenMode::binary);
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.seek(os::Cursor(5000));
+        std::cout << std::size_t(file.tell()) << std::endl;
+        
     }
     return 0;
 }

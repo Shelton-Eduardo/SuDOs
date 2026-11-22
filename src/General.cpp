@@ -155,18 +155,18 @@ unsigned char os::Ifstream::get(){
 
 
 os::Cursor os::Ifstream::tell() const{
-    return (offset - 1)*static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
+    return (offset)*static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
 }
 
 os::Cursor os::Ofstream::tell() const{
-    return (offset - 1) * static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
+    return (offset) * static_cast<os::Cursor>(buffer_size) + static_cast<os::Cursor>(current_cursor - buffer);
 }
 
-void os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
+os::Ofstream& os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
     #if !defined(__linux__)
-        if (file_handle == INVALID_HANDLE_VALUE) return ;
+        if (file_handle == INVALID_HANDLE_VALUE) return *this;
     #else
-        if (file_handle == -1) return ;
+        if (file_handle == -1) return *this;
     #endif
 
     auto write_byte = [&](unsigned char C){
@@ -203,8 +203,40 @@ void os::Ofstream::write(const unsigned char* container, std::size_t bytes) noex
         }
         write_byte('\n');
     }
+    return *this;
 }
 
-void os::Ofstream::write(const char* container, std::size_t bytes) noexcept{
+os::Ofstream& os::Ofstream::write(const char* container, std::size_t bytes) noexcept{
     return write(reinterpret_cast<const unsigned char*>(container), bytes);
 }
+
+os::Ofstream& os::Ofstream::operator<<(const unsigned char* buffer){
+    std::size_t len{};
+    while(buffer[len] != '\0' && len <= WRITE_MAX_SIZE) ++len;
+    return this->write(buffer, len);    
+}
+
+os::Ofstream& os::Ofstream::operator<<(const char* buffer){
+    std::size_t len{};
+    while(buffer[len] != '\0' && len <= WRITE_MAX_SIZE) ++len;
+    return this->write(reinterpret_cast<const unsigned char*>(buffer), len);
+}
+
+#define OPERATOR_OVERLOAD_FUNC_DEFINITIONS(type)                                            \
+    os::Ofstream& os::Ofstream::operator<<(type){                                           \
+        return this->write(reinterpret_cast<const unsigned char*>(&buffer), sizeof(type));  \
+    }
+
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(long double)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(long long)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(double)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(short)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(float)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(long)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(int)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(unsigned int)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(unsigned long)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(unsigned short)
+OPERATOR_OVERLOAD_FUNC_DEFINITIONS(unsigned long long)
+
+#undef OPERATOR_OVERLOAD_FUNC_DEFINITIONS

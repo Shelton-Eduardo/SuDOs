@@ -5,6 +5,10 @@
 #define PAGE_BUFFER_SIZE 4096
 #endif
 
+#if !defined(WRITE_MAX_SIZE)
+#define WRITE_MAX_SIZE 2048
+#endif
+
 #if !defined(PATH_MAX_SIZE)
 #define PATH_MAX_SIZE 1024
 #endif
@@ -258,21 +262,27 @@ namespace os{
             Ofstream& operator=(Ofstream&&) noexcept = delete;
 
             // Essential Write Operations (binary)
-            void write(const unsigned char* container, std::size_t bytes) noexcept;
-            void write(const char* container, std::size_t bytes) noexcept;
+            Ofstream& write(const unsigned char* container, std::size_t bytes) noexcept;
+            Ofstream& write(const char* container, std::size_t bytes) noexcept;
 
 
             void flush() noexcept;
 
             void close();
-
-            [[nodiscard]] std::size_t operator<<(const char* buffer);
-            [[nodiscard]] std::size_t operator<<(const unsigned* buffer);
-            [[nodiscard]] std::size_t operator<<(int buffer);
-            [[nodiscard]] std::size_t operator<<(short buffer);
-            [[nodiscard]] std::size_t operator<<(float buffer);
-            [[nodiscard]] std::size_t operator<<(long long buffer);
-            [[nodiscard]] std::size_t operator<<(double buffer);
+            
+            Ofstream& operator<<(const unsigned char* buffer);
+            Ofstream& operator<<(long double buffer);
+            Ofstream& operator<<(const char* buffer);
+            Ofstream& operator<<(long long buffer);
+            Ofstream& operator<<(double buffer);
+            Ofstream& operator<<(short buffer);
+            Ofstream& operator<<(float buffer);
+            Ofstream& operator<<(long buffer);
+            Ofstream& operator<<(int buffer);
+            Ofstream& operator<<(unsigned int buffer);
+            Ofstream& operator<<(unsigned long buffer);
+            Ofstream& operator<<(unsigned short buffer);
+            Ofstream& operator<<(unsigned long long buffer);
 
             // Stream Positioning
             void seek(os::Cursor position);

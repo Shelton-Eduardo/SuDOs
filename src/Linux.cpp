@@ -216,11 +216,3 @@ void os::Ofstream::close(){
 
 #endif 
 
-int main(){
-    std::uint8_t num{6};
-    os::Ofstream file("test.bin", os::OpenMode::write | os::OpenMode::new_file);
-    file.write("Hello", 5);
-    file.write("Hello Word", 10);
-    file.write("Hello Word", 10);
-    return 0;
-}

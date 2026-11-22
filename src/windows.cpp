@@ -140,9 +140,26 @@ void os::Ifstream::seek(os::Cursor position){
         NULL,
         FILE_BEGIN
         );
-    if(!refil()) return;
+    if(!refil(false)) return;
     current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
-    offset = position % static_cast<os::Cursor>(buffer_size);
+    offset = position / static_cast<os::Cursor>(buffer_size);
+}
+
+void os::Ofstream::seek(os::Cursor position){
+    flush();
+    LARGE_INTEGER aligned_pos{};
+        aligned_pos.QuadPart = static_cast<LONGLONG>(
+            (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size)
+        );
+    if(!SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+    )) throw os::exceptions::FileSeekError{};
+    if(!refil()) return ;
+    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
+    offset = position / static_cast<os::Cursor>(buffer_size);
 }
 
 os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : Ofstream(os::GlobalFunctions::ascii_to_wide(path).data, mode) {}
@@ -191,3 +208,28 @@ os::Ofstream::~Ofstream(){
 }
 
 #endif
+
+int main(){
+    {
+        os::Ifstream file("test.bin", os::OpenMode::binary | os::OpenMode::read);
+        char character = 0;
+        auto idx = file.tell();
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        std::cout << "The character is: " << character << std::endl;
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        std::cout << "The character is: " << character << std::endl;
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        std::cout << "The character is: " << character << std::endl;
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        idx = file.tell();
+        file.seek(static_cast<os::Cursor>(0));
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        std::cout << "The character is: " << character << std::endl;
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        std::cout << "The character is: " << character << std::endl;
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+        std::cout << "The character is: " << character << std::endl;
+        file.read(reinterpret_cast<unsigned char*>(&character), 1);
+    }
+    return 0;
+}

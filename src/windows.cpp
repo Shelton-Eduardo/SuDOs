@@ -141,7 +141,7 @@ void os::Ifstream::seek(os::Cursor position){
         FILE_BEGIN
         );
     if(!refil(false)) return;
-    current_cursor = buffer + (static_cast<std::size_t>(position)%buffer_size);
+    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
     offset = position / static_cast<os::Cursor>(buffer_size);
 }
 

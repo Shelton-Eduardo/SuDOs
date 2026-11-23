@@ -1,7 +1,5 @@
 #include "os.hpp"
 
-#include <iostream>
-
 #if defined(_WIN32) || defined(_WIN64)
 
 StreamBuffer::StreamBuffer(){

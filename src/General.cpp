@@ -1,9 +1,5 @@
 #include "os.hpp"
 
-#ifndef MAX_GET_RANGE
-    #define MAX_GET_RANGE 30
-#endif
-
 os::Wchar_t::Wchar_t(std::size_t len){
     data = static_cast<wchar_t*>(::operator new(sizeof(wchar_t)*len));
 }

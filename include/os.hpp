@@ -13,6 +13,10 @@
 #define PATH_MAX_SIZE 1024
 #endif
 
+#ifndef MAX_GET_RANGE
+    #define MAX_GET_RANGE 30
+#endif
+
 // Global headers
 #include <exception>
 #include <cstdint>

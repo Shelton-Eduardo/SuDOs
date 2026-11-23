@@ -484,6 +484,8 @@ namespace os{
             // Stream Positioning
             void seek(os::Cursor position);
             os::Cursor tell() const;
+
+            static constexpr unsigned char EndOfFileEOF = -1;
             };
     
     class Ofstream :
@@ -535,6 +537,9 @@ namespace os{
             // Stream Positioning
             void seek(os::Cursor position);
             os::Cursor tell() const;
+
+            // Public Vars
+            static constexpr unsigned char EndOfFileEOF = -1;
             };
     
     }

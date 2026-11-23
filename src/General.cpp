@@ -99,14 +99,16 @@ std::size_t os::Ifstream::read(unsigned char* container, std::size_t bytes) noex
 unsigned char os::Ifstream::get(){
     if(!is_open()) throw os::exceptions::FileNotOpenError();
     if(static_cast<bool>(flags & os::OpenMode::binary)){
-        if(current_cursor == end_cursor) refil();
+        if(current_cursor == end_cursor) if(!refil()) return EndOfFileEOF;
         return *current_cursor;
     }
-    for(std::size_t i{}; i < MAX_GET_RANGE; ++i){
-        if((current_cursor+i) >= end_cursor) return '\n';
-        if(*(current_cursor+i) == '\r' || *(current_cursor+i) == '\t') continue;
-        if(*(current_cursor+i) == '\n') return '\n'; 
-    }return '\n';
+    if(current_cursor == end_cursor) if(!refil()) return EndOfFileEOF;
+    unsigned char ch;
+    for(std::size_t i{}; i < (end_cursor - current_cursor) && i < MAX_GET_RANGE; ++i){
+        ch = *(current_cursor + i);
+        if(ch == '\r' || ch == '\t') continue;
+        return ch;
+    }return EndOfFileEOF;
 }
 
 os::Cursor os::Ifstream::tell() const{

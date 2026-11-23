@@ -258,25 +258,3 @@ os::Ofstream::~Ofstream(){
 }
 
 #endif 
-
-int main(){
-    {
-        os::Ofstream file("test2.bin", os::OpenMode::read_write | os::OpenMode::append | os::OpenMode::binary);
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.seek(static_cast<os::Cursor>(1020));
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.write("From Linux, Hi There!", 21);
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.seek(static_cast<os::Cursor>(66));
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.write("Linux Again, Hi", 15);
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.seek(static_cast<os::Cursor>(3000));
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.write("PLEASE DUCKING WORK", 19);
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.seek(static_cast<os::Cursor>(4107));
-        std::cout << std::size_t(file.tell()) << std::endl;
-    } // 4107
-    return 0;
-}

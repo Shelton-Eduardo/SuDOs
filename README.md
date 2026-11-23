@@ -10,7 +10,7 @@ SuDOs is actively developed and tested on both **Windows** and **Linux**:
 | Platform | Underlying API / Mechanism | Direct Disk I/O Support | Status |
 | :--- | :--- | :--- | :--- |
 | **Linux** | POSIX (`open`, `read`, `write`, `dirent.h`) | `O_DIRECT` | To Be Determined |
-| **Windows** | Win32 API (`CreateFile`, `ReadFile`, `WriteFile`) | `FILE_FLAG_NO_BUFFERING` | Tested |
+| **Windows** | Win32 API (`CreateFile`, `ReadFile`, `WriteFile`) | `FILE_FLAG_NO_BUFFERING | FILE_WRITE_THROUGH` | Tested |
 
 ## Key Features
 

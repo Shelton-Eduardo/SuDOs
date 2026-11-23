@@ -20,7 +20,8 @@
 
 
 namespace os{
-    enum class Cursor : std::size_t{start = static_cast<std::size_t>(0)};
+    enum class Cursor : std::size_t{start = static_cast<std::size_t>(0),
+                                    npos  = 0xFFFFFFFFFFFFFFFF};
     /*
         OpenMode Rules
             Sharing Prop       Opening Prop

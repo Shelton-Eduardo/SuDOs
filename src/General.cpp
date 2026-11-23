@@ -25,7 +25,7 @@ os::Cursor operator-(os::Cursor lhs, os::Cursor rhs){
 }
 
 os::Cursor operator+(os::Cursor lhs, int rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)-static_cast<std::size_t>(rhs));
+    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)+static_cast<std::size_t>(rhs));
 }
 
 os::Cursor operator-(os::Cursor lhs, int rhs){
@@ -151,6 +151,10 @@ unsigned char os::Ifstream::get(){
         if(*(current_cursor+i) == '\r' || *(current_cursor+i) == '\t') continue;
         if(*(current_cursor+i) == '\n') return '\n'; 
     }return '\n';
+}
+
+os::Cursor os::Ifstream::tell() const{
+    return (offset * static_cast<os::Cursor>(buffer_size)) + (current_cursor - buffer);
 }
 
 os::Ofstream& os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{

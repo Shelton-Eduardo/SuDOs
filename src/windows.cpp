@@ -13,7 +13,7 @@ StreamBuffer::StreamBuffer(){
     ));
     if(!buffer) throw os::exceptions::BufferFailure{};
     end_cursor = current_cursor = buffer;
-    offset = os::Cursor::start;
+    offset = os::Cursor::npos;
 }
 
 StreamBuffer::~StreamBuffer(){
@@ -140,8 +140,8 @@ void os::Ifstream::seek(os::Cursor position){
         NULL,
         FILE_BEGIN
         );
-    if(!refil(false)) return;
-    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
+    if(!refil(false)) throw os::exceptions::FileSeekError{};
+    if((current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size)) >= end_cursor) throw os::exceptions::FileSeekError{};
     offset = position / static_cast<os::Cursor>(buffer_size);
 }
 
@@ -191,14 +191,3 @@ os::Ofstream::~Ofstream(){
 }
 
 #endif
-
-int main(){
-    {
-        os::Ifstream file("test2.bin", os::OpenMode::read | os::OpenMode::append | os::OpenMode::binary);
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.seek(os::Cursor(5000));
-        std::cout << std::size_t(file.tell()) << std::endl;
-        
-    }
-    return 0;
-}

@@ -4,47 +4,6 @@
     #define MAX_GET_RANGE 30
 #endif
 
-os::OpenMode operator|(os::OpenMode lhs, os::OpenMode rhs){
-    return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)|static_cast<std::size_t>(rhs));
-}
-
-os::OpenMode operator&(os::OpenMode lhs, os::OpenMode rhs){
-    return static_cast<os::OpenMode>(static_cast<std::size_t>(lhs)&static_cast<std::size_t>(rhs));
-}
-
-os::OpenMode operator>>(os::OpenMode lhs, int bitshift) noexcept{
-    return static_cast<os::OpenMode>(static_cast<std::uint8_t>(lhs) >> bitshift);
-}
-
-os::Cursor operator+(os::Cursor lhs, os::Cursor rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)+static_cast<std::size_t>(rhs));
-}
-
-os::Cursor operator-(os::Cursor lhs, os::Cursor rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)-static_cast<std::size_t>(rhs));
-}
-
-os::Cursor operator+(os::Cursor lhs, int rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)+static_cast<std::size_t>(rhs));
-}
-
-os::Cursor operator-(os::Cursor lhs, int rhs){
-    if (lhs == os::Cursor::start) return static_cast<os::Cursor>(0);
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs) - static_cast<std::size_t>(rhs));
-}
-
-os::Cursor operator/(os::Cursor lhs, os::Cursor rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)/static_cast<std::size_t>(rhs));
-}
-
-os::Cursor operator*(os::Cursor lhs, os::Cursor rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs)*static_cast<std::size_t>(rhs));
-}
-
-os::Cursor operator%(os::Cursor lhs, os::Cursor rhs){
-    return static_cast<os::Cursor>(static_cast<std::size_t>(lhs) % static_cast<std::size_t>(rhs));
-}
-
 os::Wchar_t::Wchar_t(std::size_t len){
     data = static_cast<wchar_t*>(::operator new(sizeof(wchar_t)*len));
 }
@@ -155,7 +114,7 @@ unsigned char os::Ifstream::get(){
 }
 
 os::Cursor os::Ifstream::tell() const{
-    return (offset * static_cast<os::Cursor>(buffer_size)) + (current_cursor - buffer);
+    return (offset * static_cast<os::Cursor>(buffer_size)) + static_cast<os::Cursor>(current_cursor - buffer);
 }
 
 os::Ofstream& os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
@@ -207,7 +166,7 @@ os::Ofstream& os::Ofstream::write(const char* container, std::size_t bytes) noex
 }
 
 os::Cursor os::Ofstream::tell() const{
-    return (offset * static_cast<os::Cursor>(buffer_size)) + (current_cursor - buffer);
+    return (offset * static_cast<os::Cursor>(buffer_size)) + static_cast<os::Cursor>(current_cursor - buffer);
 }
 
 os::Ofstream& os::Ofstream::operator<<(const unsigned char* buffer){

@@ -14,30 +14,24 @@ StreamBuffer::StreamBuffer(){
     ));
     if(buffer == MAP_FAILED) os::exceptions::BufferFailure{};
     end_cursor = current_cursor = buffer;
-    offset = os::Cursor::start;
+    offset = os::Cursor::npos;
 }
 
 StreamBuffer::~StreamBuffer(){
     if(!buffer || buffer == MAP_FAILED) return ;
     if(munmap(buffer, buffer_size) == -1){
         // still to figure out what happens if it fails
+        1+1;
     }
     end_cursor = current_cursor = buffer = nullptr;
 }
 
 
-FileStream::LinuxStreamBuffer::LinuxStreamBuffer() : StreamBuffer(), file_handle(-1), flags(os::OpenMode::NONE){}
+FileStream::LinuxStreamBuffer::LinuxStreamBuffer() : StreamBuffer(), file_handle(-1){}
 
 FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const char* file, os::OpenMode method) : StreamBuffer(){
     file_handle = -1;
     open(file, method);
-}
-
-FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const wchar_t* file, os::OpenMode method) : LinuxStreamBuffer(os::GlobalFunctions::wide_to_ascii(file).data, method){}
-
-FileStream::LinuxStreamBuffer::~LinuxStreamBuffer() noexcept{
-    if(file_handle == -1) return ;
-    this->close();
 }
 
 void FileStream::LinuxStreamBuffer::open(const char* path, os::OpenMode mode){
@@ -115,26 +109,33 @@ void FileStream::LinuxStreamBuffer::open(const wchar_t* path, os::OpenMode metho
     return this->open(os::GlobalFunctions::wide_to_ascii(path).data, method);
 }
 
+FileStream::LinuxStreamBuffer::LinuxStreamBuffer(const wchar_t* file, os::OpenMode method) : LinuxStreamBuffer(os::GlobalFunctions::wide_to_ascii(file).data, method){}
+
+FileStream::LinuxStreamBuffer::~LinuxStreamBuffer() noexcept{
+    this->close();
+}
 
 void FileStream::LinuxStreamBuffer::close(){
     if(file_handle == -1) return ;
-    if(::close(file_handle) == 0) return ;
-    switch (errno)
-    {
-    case EBADF:
-        throw os::exceptions::FileUnknownError{};
-    case EINTR:
-        throw os::exceptions::SystemFailureError{};
-    case EIO:
-        throw os::exceptions::SystemFailureError{};
-    case ENOSPC:
-    case EDQUOT:
-        throw os::exceptions::SystemFailureError{};    
-    default:
-        throw os::exceptions::FileUnknownError{};
+    if(::close(file_handle) == -1){
+        switch (errno)
+        {
+        case EBADF:
+            throw os::exceptions::FileUnknownError{};
+        case EINTR:
+            throw os::exceptions::SystemFailureError{};
+        case EIO:
+            throw os::exceptions::SystemFailureError{};
+        case ENOSPC:
+        case EDQUOT:
+            throw os::exceptions::SystemFailureError{};    
+        default:
+            throw os::exceptions::FileUnknownError{};
+        }
     }
     file_handle = -1;
 }
+
 
 bool FileStream::LinuxStreamBuffer::is_open() const{
     return file_handle != -1;
@@ -169,8 +170,11 @@ bool FileStream::LinuxStreamBuffer::refil(bool update) noexcept{
                 return false;
         }
     }
-    if (read == 0) return false;
-    if(update) offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(read/buffer_size));
+    if (read == 0){
+        current_cursor = end_cursor = buffer;
+        return false;
+    }
+    if(update) offset = offset + static_cast<os::Cursor>(1);
     current_cursor = buffer;
     end_cursor = buffer + read;
     return true;
@@ -178,41 +182,101 @@ bool FileStream::LinuxStreamBuffer::refil(bool update) noexcept{
 
 os::Ifstream::Ifstream(const char* path, os::OpenMode mode) : LinuxStreamBuffer(path, mode){}
 
-os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : LinuxStreamBuffer(path, mode){
-    end_cursor = buffer + static_cast<std::size_t>(buffer_size);
+void os::Ifstream::seek(os::Cursor position){
+    off_t aligned_pos = 
+        static_cast<std::size_t>(position / static_cast<os::Cursor>(buffer_size) * static_cast<os::Cursor>(buffer_size));
+    off_t state = lseek( // debugging purposes, remove the var in the end
+        file_handle,
+        aligned_pos,
+        SEEK_SET
+    );
+    if(!refil(false)) throw os::exceptions::FileSeekError{};
+    if((buffer + (static_cast<std::size_t>(position) % buffer_size)) >= end_cursor) throw os::exceptions::FileSeekError{};
+    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
+    offset = position / static_cast<os::Cursor>(buffer_size);
 }
+
+os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : LinuxStreamBuffer(path, mode){
+    if(offset == os::Cursor::npos){
+        offset = os::Cursor::start;
+        end_cursor = buffer + buffer_size;
+    }
+}
+
+void os::Ofstream::seekp(os::Cursor pos_off) noexcept{
+    off_t aligned_pos = 
+        static_cast<std::size_t>(pos_off * static_cast<os::Cursor>(buffer_size));
+    lseek(
+        file_handle,
+        aligned_pos,
+        SEEK_SET
+    );
+}
+
 
 void os::Ofstream::flush() noexcept{
     if(file_handle == -1) return ;
+    this->seekp(offset);
     ssize_t written = ::write(
         file_handle,
         buffer,
         buffer_size
     );
-    if(written == -1){
-        // Debugging purposes;
-        std::cout << 1+1 << std::endl;
-        return ;
-    }else if(written < buffer_size){
-        // disk is full
-        std::cout << 2+2 << std::endl;
-        return ;
-    }
+    if(written == -1 || written == 0) return ;
     offset = offset + static_cast<os::Cursor>(1ULL);
     current_cursor = buffer;
     end_cursor = buffer + buffer_size;
+}
+
+void os::Ofstream::seek(os::Cursor position){
+    flush();
+    off_t aligned_pos = 
+        static_cast<std::size_t>(position / static_cast<os::Cursor>(buffer_size) * static_cast<os::Cursor>(buffer_size));
+    off_t state = lseek( // debugging purposes, remove the var in the end
+        file_handle,
+        aligned_pos,
+        SEEK_SET
+    );
+    if(!refil(false)) throw os::exceptions::FileSeekError{};
+    if((buffer + (static_cast<std::size_t>(position) % buffer_size)) >= end_cursor) throw os::exceptions::FileSeekError{};
+    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
+    offset = position / static_cast<os::Cursor>(buffer_size);
+
+}
+
+void os::Ofstream::close(){
+    if(file_handle == -1) return ;
+    std::size_t total_size = (static_cast<std::size_t>(offset) * buffer_size) + (current_cursor - buffer);
+    flush();
+    ftruncate64(file_handle, total_size);
+    current_cursor = end_cursor = buffer;
+    offset = os::Cursor::npos;
 }
 
 os::Ofstream::~Ofstream(){
     close();
 }
 
-void os::Ofstream::close(){
-    if(file_handle == -1) return ;
-    std::size_t total_size = static_cast<std::size_t>(offset)*buffer_size + (current_cursor - buffer);
-    flush();
-    ftruncate64(file_handle, total_size);
-}
-
 #endif 
 
+int main(){
+    {
+        os::Ofstream file("test2.bin", os::OpenMode::read_write | os::OpenMode::append | os::OpenMode::binary);
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.seek(static_cast<os::Cursor>(1020));
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.write("From Linux, Hi There!", 21);
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.seek(static_cast<os::Cursor>(66));
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.write("Linux Again, Hi", 15);
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.seek(static_cast<os::Cursor>(3000));
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.write("PLEASE DUCKING WORK", 19);
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.seek(static_cast<os::Cursor>(4107));
+        std::cout << std::size_t(file.tell()) << std::endl;
+    } // 4107
+    return 0;
+}

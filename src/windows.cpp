@@ -117,10 +117,10 @@ bool FileStream::WindowsStreamBuffer::refil(bool update) noexcept{
 
     if(!stat || (read == 0 && !stat)){
         current_cursor = end_cursor = buffer;
-        DWORD err = stat ? 0 : GetLastError();
+        DWORD err = stat ? 0 : GetLastError(); // Debugging Purposes, to remove later on
         return false;
     }
-    if(update) offset = offset + static_cast<os::Cursor>(static_cast<std::size_t>(1));
+    if(update) offset = offset + static_cast<os::Cursor>(1);
     current_cursor = buffer;
     end_cursor = buffer + read;
     return true;
@@ -134,7 +134,7 @@ void os::Ifstream::seek(os::Cursor position){
     LARGE_INTEGER aligned_pos{};
         aligned_pos.QuadPart = static_cast<LONGLONG>(
             (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size));
-    BOOL state = SetFilePointerEx(
+    SetFilePointerEx(
         file_handle,
         aligned_pos,
         NULL,
@@ -160,7 +160,7 @@ void os::Ofstream::seekp(os::Cursor pos_off) noexcept{
         aligned_pos.QuadPart = static_cast<LONGLONG>(
             (pos_off * static_cast<os::Cursor>(buffer_size))
         );
-    BOOL state = SetFilePointerEx(
+    SetFilePointerEx(
         file_handle,
         aligned_pos,
         NULL,
@@ -222,18 +222,3 @@ os::Ofstream::~Ofstream(){
 }
 
 #endif
-
-
-int main(){
-    {
-        os::Ofstream file("test2.bin", os::OpenMode::read_write | os::OpenMode::append | os::OpenMode::binary);
-        std::cout << std::size_t(file.tell()) << std::endl;
-        file.seek(static_cast<os::Cursor>(2020));
-        file.write("Baka SHELTON EDUARDO", 15);
-        file.seek(static_cast<os::Cursor>(50));
-        file.write("SHELTON EDUARDO", 15);
-        file.seek(static_cast<os::Cursor>(4092));
-        file.write("SHELTON EDUARDO", 15);
-    }
-    return 0;
-}

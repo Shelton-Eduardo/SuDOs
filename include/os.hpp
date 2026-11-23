@@ -185,6 +185,8 @@ class StreamBuffer{
     #include <fcntl.h>
     #include <cerrno>
 
+    #define _FILE_OFFSET_BITS 64
+
     namespace FileStream{
         // FileStream class for Linux/Debian Enviroments
         class LinuxStreamBuffer : public StreamBuffer{

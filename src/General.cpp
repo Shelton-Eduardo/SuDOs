@@ -144,6 +144,7 @@ std::size_t os::Ifstream::read(unsigned char* container, std::size_t bytes) noex
 unsigned char os::Ifstream::get(){
     if(!is_open()) throw os::exceptions::FileNotOpenError();
     if(static_cast<bool>(flags & os::OpenMode::binary)){
+        if(current_cursor == end_cursor) refil();
         return *current_cursor;
     }
     for(std::size_t i{}; i < MAX_GET_RANGE; ++i){

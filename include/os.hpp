@@ -249,6 +249,10 @@ namespace os{
         public FileStream::LinuxStreamBuffer
     #endif
     {
+        private:
+            void seekp(os::Cursor pos_off) noexcept;
+            void flush() noexcept;
+
         public:
             Ofstream() = default;
             Ofstream(const char* path, os::OpenMode mode = os::OpenMode::write | os::OpenMode::binary | os::OpenMode::new_file);
@@ -267,7 +271,6 @@ namespace os{
             Ofstream& write(const char* container, std::size_t bytes) noexcept;
 
 
-            void flush() noexcept;
 
             void close();
             

@@ -39,7 +39,7 @@ void FileStream::WindowsStreamBuffer::open(const char* path, os::OpenMode mode){
 
 void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mode){
     if(file_handle != INVALID_HANDLE_VALUE) return ;
-        file_handle = CreateFileW(
+         file_handle = CreateFileW(
             path,
             ((mode & os::OpenMode::read_write) == os::OpenMode::read_write || static_cast<bool>(mode & os::OpenMode::append))
                 ? (GENERIC_READ | GENERIC_WRITE) :
@@ -78,9 +78,9 @@ void FileStream::WindowsStreamBuffer::open(const wchar_t* path, os::OpenMode mod
         LARGE_INTEGER setoffset{};
         if(!GetFileSizeEx(file_handle, &file_size)) throw os::exceptions::FileReadError();
         setoffset.QuadPart = file_size.QuadPart - (file_size.QuadPart % buffer_size);
-        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size + 1);
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
         if((file_size.QuadPart % buffer_size) > 0) refil(false);
+        offset = static_cast<os::Cursor>(file_size.QuadPart / buffer_size);
         current_cursor = buffer + (file_size.QuadPart % buffer_size);
         end_cursor = buffer + buffer_size;
         if(!SetFilePointerEx(file_handle, setoffset, NULL, FILE_BEGIN)) throw os::exceptions::FileSeekError();
@@ -115,7 +115,7 @@ bool FileStream::WindowsStreamBuffer::refil(bool update) noexcept{
         NULL
     );
 
-    if(!stat || read == 0){
+    if(!stat || (read == 0 && !stat)){
         current_cursor = end_cursor = buffer;
         DWORD err = stat ? 0 : GetLastError();
         return false;
@@ -141,19 +141,38 @@ void os::Ifstream::seek(os::Cursor position){
         FILE_BEGIN
         );
     if(!refil(false)) throw os::exceptions::FileSeekError{};
-    if((current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size)) >= end_cursor) throw os::exceptions::FileSeekError{};
+    if((buffer + (static_cast<std::size_t>(position) % buffer_size)) >= end_cursor) throw os::exceptions::FileSeekError{};
+    current_cursor = buffer + (static_cast<std::size_t>(position) % buffer_size);
     offset = position / static_cast<os::Cursor>(buffer_size);
 }
 
 os::Ofstream::Ofstream(const char* path, os::OpenMode mode) : Ofstream(os::GlobalFunctions::ascii_to_wide(path).data, mode) {}
 
 os::Ofstream::Ofstream(const wchar_t* path, os::OpenMode mode) : WindowsStreamBuffer(path, mode){
-    end_cursor = buffer + static_cast<std::size_t>(buffer_size);
+    if(offset == os::Cursor::npos){
+        offset = os::Cursor::start;
+        end_cursor = buffer + buffer_size;
+    }
+}
+
+void os::Ofstream::seekp(os::Cursor pos_off) noexcept{
+    LARGE_INTEGER aligned_pos{};
+        aligned_pos.QuadPart = static_cast<LONGLONG>(
+            (pos_off * static_cast<os::Cursor>(buffer_size))
+        );
+    BOOL state = SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+    );
 }
 
 void os::Ofstream::flush() noexcept{
     if(file_handle == INVALID_HANDLE_VALUE) return ;
+    this->seekp(offset); // just in case the filepointer is not at current offset
     DWORD written{};
+    // while(current_cursor < end_cursor) *(current_cursor++) = '\0'; // overiding the leftover bytes
     BOOL state = WriteFile(
         file_handle,
         buffer,
@@ -167,23 +186,35 @@ void os::Ofstream::flush() noexcept{
     end_cursor = buffer + buffer_size;
 }
 
+void os::Ofstream::seek(os::Cursor position){
+    flush();
+    LARGE_INTEGER aligned_pos{};
+        aligned_pos.QuadPart = static_cast<LONGLONG>(
+            (position / static_cast<os::Cursor>(buffer_size)) * static_cast<os::Cursor>(buffer_size)
+        );
+    BOOL state = SetFilePointerEx(
+        file_handle,
+        aligned_pos,
+        NULL,
+        FILE_BEGIN
+    );
+    if(!refil(false)) throw os::exceptions::FileSeekError{};
+    current_cursor = buffer + (static_cast<std::size_t>(position) % (buffer_size));
+    offset = position / static_cast<os::Cursor>(buffer_size);
+    end_cursor = buffer + buffer_size;
+}
+
 void os::Ofstream::close(){
     if(file_handle == INVALID_HANDLE_VALUE) return ;
     std::size_t total_size = (static_cast<std::size_t>(offset) * buffer_size) + (current_cursor - buffer);
     flush();
     FILE_END_OF_FILE_INFO wflag{};
-    wflag.EndOfFile.QuadPart = total_size;
-    BOOL state = SetFileInformationByHandle(
-        file_handle,
-        FileEndOfFileInfo,
-        &wflag,
-        sizeof(wflag)
-    );
+    wflag.EndOfFile.QuadPart = static_cast<LONGLONG>(total_size);
+    SetFileInformationByHandle(file_handle, FileEndOfFileInfo, &wflag, sizeof(wflag));
     CloseHandle(file_handle);
     file_handle = INVALID_HANDLE_VALUE;
     current_cursor = end_cursor = buffer;
-    offset = os::Cursor::start;
-    if(!state) throw os::exceptions::FileWriteError();
+    offset = os::Cursor::npos;
 }
 
 os::Ofstream::~Ofstream(){
@@ -191,3 +222,18 @@ os::Ofstream::~Ofstream(){
 }
 
 #endif
+
+
+int main(){
+    {
+        os::Ofstream file("test2.bin", os::OpenMode::read_write | os::OpenMode::append | os::OpenMode::binary);
+        std::cout << std::size_t(file.tell()) << std::endl;
+        file.seek(static_cast<os::Cursor>(2020));
+        file.write("Baka SHELTON EDUARDO", 15);
+        file.seek(static_cast<os::Cursor>(50));
+        file.write("SHELTON EDUARDO", 15);
+        file.seek(static_cast<os::Cursor>(4092));
+        file.write("SHELTON EDUARDO", 15);
+    }
+    return 0;
+}

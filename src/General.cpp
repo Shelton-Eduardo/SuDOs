@@ -205,6 +205,10 @@ os::Ofstream& os::Ofstream::write(const char* container, std::size_t bytes) noex
     return write(reinterpret_cast<const unsigned char*>(container), bytes);
 }
 
+os::Cursor os::Ofstream::tell() const{
+    return (offset * static_cast<os::Cursor>(buffer_size)) + (current_cursor - buffer);
+}
+
 os::Ofstream& os::Ofstream::operator<<(const unsigned char* buffer){
     std::size_t len{};
     while(buffer[len] != '\0' && len <= WRITE_MAX_SIZE) ++len;

@@ -477,9 +477,24 @@ namespace os{
             Ifstream& operator=(const Ifstream&) = delete;
             Ifstream& operator=(Ifstream&&) noexcept = delete;
 
+            explicit operator bool() const noexcept;
+
             // Essential Read Operations
             [[nodiscard]] std::size_t read(unsigned char* container, std::size_t bytes) noexcept;
             unsigned char get();
+
+            Ifstream& operator>>(unsigned char& container);
+            Ifstream& operator>>(char& container);
+            Ifstream& operator>>(long double& container);
+            Ifstream& operator>>(double& container);
+            Ifstream& operator>>(short& container);
+            Ifstream& operator>>(float& container);
+            Ifstream& operator>>(long& container);
+            Ifstream& operator>>(int& container);
+            Ifstream& operator>>(unsigned int& container);
+            Ifstream& operator>>(unsigned long& container);
+            Ifstream& operator>>(unsigned short& container);
+            Ifstream& operator>>(unsigned long long& container);
 
             // Stream Positioning
             void seek(os::Cursor position);
@@ -511,6 +526,7 @@ namespace os{
             Ofstream(Ofstream&&) noexcept = delete;
             Ofstream& operator=(const Ofstream&) = delete;
             Ofstream& operator=(Ofstream&&) noexcept = delete;
+            explicit operator bool() const noexcept;
 
             // Essential Write Operations (binary)
             Ofstream& write(const unsigned char* container, std::size_t bytes) noexcept;

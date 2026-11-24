@@ -123,6 +123,27 @@ os::Cursor os::Ifstream::tell() const{
     return (offset * static_cast<os::Cursor>(buffer_size)) + static_cast<os::Cursor>(current_cursor - buffer);
 }
 
+#define IFSTREAM_OPERATO_OVERLOAD(type)                                     \
+    os::Ifstream& os::Ifstream::operator>>(type& container){                \
+        (void)read(reinterpret_cast<unsigned char*>(&container), sizeof(type));   \
+        return *this;                                                       \
+    }
+
+IFSTREAM_OPERATO_OVERLOAD(unsigned char)
+IFSTREAM_OPERATO_OVERLOAD(char)
+IFSTREAM_OPERATO_OVERLOAD(long double)
+IFSTREAM_OPERATO_OVERLOAD(double)
+IFSTREAM_OPERATO_OVERLOAD(short)
+IFSTREAM_OPERATO_OVERLOAD(float)
+IFSTREAM_OPERATO_OVERLOAD(long)
+IFSTREAM_OPERATO_OVERLOAD(int)
+IFSTREAM_OPERATO_OVERLOAD(unsigned int)
+IFSTREAM_OPERATO_OVERLOAD(unsigned long)
+IFSTREAM_OPERATO_OVERLOAD(unsigned short)
+IFSTREAM_OPERATO_OVERLOAD(unsigned long long)
+
+#undef IFSTREAM_OPERATO_OVERLOAD
+
 os::Ofstream& os::Ofstream::write(const unsigned char* container, std::size_t bytes) noexcept{
     #if !defined(__linux__)
         if (file_handle == INVALID_HANDLE_VALUE) return *this;

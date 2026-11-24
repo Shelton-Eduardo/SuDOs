@@ -518,7 +518,7 @@ namespace os{
             Ofstream() = default;
             Ofstream(const char* path, os::OpenMode mode = os::OpenMode::write | os::OpenMode::binary | os::OpenMode::new_file);
             #if defined(_WIN32) || defined(_WIN64)
-                Ofstream(const wchar_t* path, os::OpenMode mode = os::OpenMode::read | os::OpenMode::binary | os::OpenMode::new_file);
+                Ofstream(const wchar_t* path, os::OpenMode mode = os::OpenMode::write | os::OpenMode::binary | os::OpenMode::new_file);
             #endif
             ~Ofstream();
 

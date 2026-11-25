@@ -219,12 +219,110 @@ os::Ofstream::~Ofstream(){
     close();
 }
 
+os::PRIVATE_DETAILS::ListDirs os::listdir(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::PRIVATE_DETAILS::ListDirs os::listdirF(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        if((data.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN)) == 0 &&
+         !((data.cFileName[0] == L'.' && data.cFileName[1] == L'\0') ||
+          (data.cFileName[0] == L'.' && data.cFileName[1] == L'.' && data.cFileName[2] == L'\0'))) temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::PRIVATE_DETAILS::ListDirs os::listdirD(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        if((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && !((data.cFileName[0] == L'.' && data.cFileName[1] == L'\0') || (data.cFileName[0] == L'.' && data.cFileName[1] == L'.' && data.cFileName[2] == L'\0'))) temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::PRIVATE_DETAILS::ListDirs os::listdirH(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        if((data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) &&
+         !((data.cFileName[0] == L'.' && data.cFileName[1] == L'\0') ||
+          (data.cFileName[0] == L'.' && data.cFileName[1] == L'.' && data.cFileName[2] == L'\0'))) temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
 #endif
 
 #include <iostream>
 
 int main(){
+    std::cout << "-----------------Testing Listdir---------------" << std::endl;
     auto contents = os::listdir(L"D:\\__Projects__\\SuDOs\\*");
-    std::cout << contents;
+    std::cout << contents << std::endl;
+
+    std::cout << "-----------------Testing ListdirF---------------" << std::endl;
+    auto contentsf = os::listdirF(L"D:\\__Projects__\\SuDOs\\*");
+    std::cout << contentsf << std::endl;
+
+    std::cout << "-----------------Testing ListdirD---------------" << std::endl;
+    auto contentsd = os::listdirD(L"D:\\__Projects__\\SuDOs\\*");
+    std::cout << contentsd << std::endl;
+
+    std::cout << "-----------------Testing ListdirH---------------" << std::endl;
+    auto contenth = os::listdirH(L"D:\\__Projects__\\SuDOs\\*");
+    std::cout << contenth << std::endl;
+    
     return 0;
 }

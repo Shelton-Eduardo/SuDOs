@@ -226,7 +226,7 @@ os::PRIVATE_DETAILS::ListDirs::~ListDirs() noexcept{
 
 void os::PRIVATE_DETAILS::ListDirs::refil(){
     wchar_t** tempA = static_cast<wchar_t**>(::operator new(sizeof(wchar_t*) * ((len!=0) ? len * 2 : 10)));
-    std::size_t* tempB = static_cast<std::size_t*>(::operator new(sizeof(std::size_t) * ((len != 10) ? len * 2 : 10)));
+    std::size_t* tempB = static_cast<std::size_t*>(::operator new(sizeof(std::size_t) * ((len != 0) ? len * 2 : 10)));
     for(std::size_t i{}; i<len; ++i){
         ::new(&tempA[i]) wchar_t*(content[i]);
         ::new(&tempB[i]) std::size_t(content_size[i]);
@@ -248,26 +248,6 @@ void os::PRIVATE_DETAILS::ListDirs::add(const wchar_t* data, std::size_t size){
     ::new(&content[len]) wchar_t*(entry);
     ::new(&content_size[len]) std::size_t(size);
     ++len;
-}
-
-os::PRIVATE_DETAILS::ListDirs os::listdir(const wchar_t* path){
-    os::PRIVATE_DETAILS::ListDirs temp{};
-    if(!path) return temp;
-    WIN32_FIND_DATAW data;
-    HANDLE files = FindFirstFileExW(
-        path,
-        FindExInfoBasic,
-        &data,
-        FindExSearchNameMatch,
-        NULL,
-        FIND_FIRST_EX_LARGE_FETCH
-    );
-    if(files == INVALID_HANDLE_VALUE) return temp;
-    do{
-        temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
-    }while(FindNextFileW(files, &data) != 0);
-    FindClose(files);
-    return temp;
 }
 
 #define OPERATOR_OVERLOAD_FUNC_DEFINITIONS(type)                                            \

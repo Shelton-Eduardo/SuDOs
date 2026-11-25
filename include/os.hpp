@@ -596,6 +596,9 @@ namespace os{
     os::Wchar_t getcwd() noexcept;
     bool chwdir() noexcept;
     os::PRIVATE_DETAILS::ListDirs listdir(const wchar_t* path = os::getcwd().data);
+    os::PRIVATE_DETAILS::ListDirs listdirF(const wchar_t* path = os::getcwd().data);
+    os::PRIVATE_DETAILS::ListDirs listdirD(const wchar_t* path = os::getcwd().data);
+    os::PRIVATE_DETAILS::ListDirs listdirH(const wchar_t* path = os::getcwd().data);
 }
 
 

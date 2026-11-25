@@ -208,6 +208,48 @@ os::Ofstream& os::Ofstream::operator<<(const char* buffer){
     return this->write(reinterpret_cast<const unsigned char*>(buffer), len);
 }
 
+// Working on version two
+
+os::PRIVATE_DETAILS::ListDirs::ListDirs() : content(nullptr), content_size(nullptr), len(0){}
+
+os::PRIVATE_DETAILS::ListDirs::ListDirs(ListDirs&& source) noexcept : content_size(source.content_size), content(source.content), len(source.len){
+    source.content = nullptr;
+    source.content_size = nullptr;
+    source.len = 0;
+}
+
+os::PRIVATE_DETAILS::ListDirs::~ListDirs() noexcept{
+    while(len > 0) ::operator delete(content[--len]);
+    ::operator delete(content);
+    ::operator delete(content_size);
+}
+
+void os::PRIVATE_DETAILS::ListDirs::refil(){
+    wchar_t** tempA = static_cast<wchar_t**>(::operator new(sizeof(wchar_t*) * ((len!=0) ? len * 2 : 10)));
+    std::size_t* tempB = static_cast<std::size_t*>(::operator new(sizeof(std::size_t) * ((len != 0) ? len * 2 : 10)));
+    for(std::size_t i{}; i<len; ++i){
+        ::new(&tempA[i]) wchar_t*(content[i]);
+        ::new(&tempB[i]) std::size_t(content_size[i]);
+    }
+    ::operator delete(content);
+    ::operator delete(content_size);
+    content = tempA;
+    content_size = tempB;
+}
+
+void os::PRIVATE_DETAILS::ListDirs::add(const wchar_t* data, std::size_t size){
+    if(!data) return ;
+    if(len % 10 == 0) refil();
+    std::size_t length{};
+    while(data[length] != L'\0') ++length;
+    wchar_t* entry = static_cast<wchar_t*>(::operator new(sizeof(wchar_t) * (length + 1)));
+    for(std::size_t i{}; i<length; ++i) ::new(&entry[i]) wchar_t(data[i]);
+    entry[length] = L'\0';
+    ::new(&content[len]) wchar_t*(entry);
+    ::new(&content_size[len]) std::size_t(size);
+    ++len;
+}
+
 #define OPERATOR_OVERLOAD_FUNC_DEFINITIONS(type)                                            \
     os::Ofstream& os::Ofstream::operator<<(type buffer){                                           \
         return this->write(reinterpret_cast<const unsigned char*>(&buffer), sizeof(type));  \
@@ -226,24 +268,3 @@ OPERATOR_OVERLOAD_FUNC_DEFINITIONS(unsigned short)
 OPERATOR_OVERLOAD_FUNC_DEFINITIONS(unsigned long long)
 
 #undef OPERATOR_OVERLOAD_FUNC_DEFINITIONS
-
-#define IFSTREAM_OPERATO_OVERLOAD(type)                                     \
-    os::Ifstream& os::Ifstream::operator>>(type& container){                \
-        (void)read(reinterpret_cast<unsigned char*>(&container), sizeof(type));   \
-        return *this;                                                       \
-    }
-
-IFSTREAM_OPERATO_OVERLOAD(unsigned char)
-IFSTREAM_OPERATO_OVERLOAD(char)
-IFSTREAM_OPERATO_OVERLOAD(long double)
-IFSTREAM_OPERATO_OVERLOAD(double)
-IFSTREAM_OPERATO_OVERLOAD(short)
-IFSTREAM_OPERATO_OVERLOAD(float)
-IFSTREAM_OPERATO_OVERLOAD(long)
-IFSTREAM_OPERATO_OVERLOAD(int)
-IFSTREAM_OPERATO_OVERLOAD(unsigned int)
-IFSTREAM_OPERATO_OVERLOAD(unsigned long)
-IFSTREAM_OPERATO_OVERLOAD(unsigned short)
-IFSTREAM_OPERATO_OVERLOAD(unsigned long long)
-
-#undef IFSTREAM_OPERATO_OVERLOAD

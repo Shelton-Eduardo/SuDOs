@@ -21,6 +21,7 @@
 #include <exception>
 #include <cstdint>
 #include <cstddef>
+#include <ostream>
 
 
 namespace os{
@@ -559,5 +560,48 @@ namespace os{
             };
     
     }
+
+// version two functions
+
+// Private Data
+namespace os::PRIVATE_DETAILS{
+    struct ListDirs{
+        std::size_t*    content_size;
+        wchar_t**       content;
+        std::size_t     len;
+
+        ListDirs();
+        ~ListDirs() noexcept;
+
+        ListDirs(const ListDirs& source)                = delete;
+        ListDirs(ListDirs&& source) noexcept;
+        ListDirs& operator=(const ListDirs& source)     = delete;
+        ListDirs& operator=(ListDirs&& source) noexcept = delete;
+
+        void add(const wchar_t* data, std::size_t size);
+
+        friend std::ostream& operator<<(std::ostream& printer_txt, const ListDirs& source){
+        for(std::size_t i{}; i<source.len; ++i) printer_txt << os::GlobalFunctions::wide_to_ascii((source.content[i])).data <<
+         "--------------------" << source.content_size[i] << '\n';
+        return printer_txt;
+    }
+
+        private:
+            void refil();
+    };
+}
+
+
+namespace os{
+    os::Wchar_t getcwd();
+    [[nodiscard]] bool chwdir(wchar_t* path);
+    os::PRIVATE_DETAILS::ListDirs listdir(const wchar_t* path = os::getcwd().data);
+    os::PRIVATE_DETAILS::ListDirs listdirF(const wchar_t* path = os::getcwd().data);
+    os::PRIVATE_DETAILS::ListDirs listdirD(const wchar_t* path = os::getcwd().data);
+    os::PRIVATE_DETAILS::ListDirs listdirH(const wchar_t* path = os::getcwd().data);
+}
+
+
+
     
 #endif // OS_IMPLEMENTATION_HPP

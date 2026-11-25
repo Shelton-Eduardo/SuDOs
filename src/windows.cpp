@@ -219,4 +219,105 @@ os::Ofstream::~Ofstream(){
     close();
 }
 
+os::PRIVATE_DETAILS::ListDirs os::listdir(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::PRIVATE_DETAILS::ListDirs os::listdirF(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        if((data.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN)) == 0 &&
+         !((data.cFileName[0] == L'.' && data.cFileName[1] == L'\0') ||
+          (data.cFileName[0] == L'.' && data.cFileName[1] == L'.' && data.cFileName[2] == L'\0'))) temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::PRIVATE_DETAILS::ListDirs os::listdirD(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        if((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && !((data.cFileName[0] == L'.' && data.cFileName[1] == L'\0') || (data.cFileName[0] == L'.' && data.cFileName[1] == L'.' && data.cFileName[2] == L'\0'))) temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::PRIVATE_DETAILS::ListDirs os::listdirH(const wchar_t* path){
+    os::PRIVATE_DETAILS::ListDirs temp{};
+    if(!path) return temp;
+    WIN32_FIND_DATAW data;
+    HANDLE files = FindFirstFileExW(
+        path,
+        FindExInfoBasic,
+        &data,
+        FindExSearchNameMatch,
+        NULL,
+        FIND_FIRST_EX_LARGE_FETCH
+    );
+    if(files == INVALID_HANDLE_VALUE) return temp;
+    do{
+        if((data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) &&
+         !((data.cFileName[0] == L'.' && data.cFileName[1] == L'\0') ||
+          (data.cFileName[0] == L'.' && data.cFileName[1] == L'.' && data.cFileName[2] == L'\0'))) temp.add(data.cFileName, (static_cast<std::size_t>(data.nFileSizeHigh) << 32 | static_cast<std::size_t>(data.nFileSizeLow)));
+    }while(FindNextFileW(files, &data) != 0);
+    FindClose(files);
+    return temp;
+}
+
+os::Wchar_t os::getcwd() {
+    DWORD buffer_size = GetCurrentDirectoryW(0, nullptr);
+    if (buffer_size == 0) throw os::exceptions::SystemFailureError{};
+    os::Wchar_t buffer{buffer_size + 1};
+    DWORD written = GetCurrentDirectoryW(buffer_size, buffer.data);
+    if (written == 0 || written >= buffer_size) throw os::exceptions::SystemFailureError{};
+    buffer.data[buffer_size -1] = L'\\';
+    buffer.data[buffer_size] = L'\0';
+    return buffer;
+}
+
+bool os::chwdir(wchar_t* path){
+    return SetCurrentDirectoryW(path);
+}
+
 #endif
+
+#include <iostream>

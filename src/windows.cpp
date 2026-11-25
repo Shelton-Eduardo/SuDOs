@@ -220,3 +220,11 @@ os::Ofstream::~Ofstream(){
 }
 
 #endif
+
+#include <iostream>
+
+int main(){
+    auto contents = os::listdir(L"D:\\__Projects__\\SuDOs\\*");
+    std::cout << contents;
+    return 0;
+}

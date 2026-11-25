@@ -574,13 +574,17 @@ namespace os::PRIVATE_DETAILS{
         ~ListDirs() noexcept;
 
         ListDirs(const ListDirs& source)                = delete;
-        ListDirs(ListDirs&& source) noexcept            = delete;
+        ListDirs(ListDirs&& source) noexcept;
         ListDirs& operator=(const ListDirs& source)     = delete;
         ListDirs& operator=(ListDirs&& source) noexcept = delete;
 
         void add(const wchar_t* data, std::size_t size);
 
-        friend std::ostream& operator<<(std::ostream& printer_txt, const ListDirs& source);
+        friend std::ostream& operator<<(std::ostream& printer_txt, const ListDirs& source){
+        for(std::size_t i{}; i<source.len; ++i) printer_txt << os::GlobalFunctions::wide_to_ascii((source.content[i])).data <<
+         "--------------------" << source.content_size[i] << '\n';
+        return printer_txt;
+    }
 
         private:
             void refil();

@@ -208,6 +208,33 @@ os::Ofstream& os::Ofstream::operator<<(const char* buffer){
     return this->write(reinterpret_cast<const unsigned char*>(buffer), len);
 }
 
+// Working on version two
+
+os::PRIVATE_DETAILS::ListDirs::ListDirs() : content(nullptr), content_size(nullptr), len(0){}
+
+os::PRIVATE_DETAILS::ListDirs::~ListDirs() noexcept{
+    while(len > 0) ::operator delete(content[--len]);
+    ::operator delete(content);
+    ::operator delete(content_size);
+}
+
+void os::PRIVATE_DETAILS::ListDirs::add(const wchar_t* data, std::size_t size){
+    if(!data) return ;
+    if(len % 10 == 0) refil();
+    wchar_t* entry = static_cast<wchar_t*>(::operator new(sizeof(wchar_t) * (size + 1)));
+    for(std::size_t i{}; i<size; ++i) ::new(&entry[i]) wchar_t(data[i]);
+    entry[size] = L'\0';
+    ::new(&content[len]) wchar_t*(entry);
+    ::new(&content_size[len]) std::size_t(size);
+    ++len;
+}
+
+std::ostream& os::PRIVATE_DETAILS::operator<<(std::ostream& printer_txt, const ListDirs& source){
+            for(std::size_t i{}; i<source.len; ++i) printer_txt << os::GlobalFunctions::wide_to_ascii((source.content[i])).data <<
+             "--------------------" << source.content_size[i] << '\n';
+            return printer_txt;
+        }
+
 #define OPERATOR_OVERLOAD_FUNC_DEFINITIONS(type)                                            \
     os::Ofstream& os::Ofstream::operator<<(type buffer){                                           \
         return this->write(reinterpret_cast<const unsigned char*>(&buffer), sizeof(type));  \

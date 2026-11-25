@@ -21,6 +21,7 @@
 #include <exception>
 #include <cstdint>
 #include <cstddef>
+#include <ostream>
 
 
 namespace os{
@@ -559,5 +560,41 @@ namespace os{
             };
     
     }
+
+// version two functions
+
+// Private Data
+namespace os::PRIVATE_DETAILS{
+    struct ListDirs{
+        std::size_t*    content_size;
+        wchar_t**       content;
+        std::size_t     len;
+
+        ListDirs();
+        ~ListDirs() noexcept;
+
+        ListDirs(const ListDirs& source)                = delete;
+        ListDirs(ListDirs&& source) noexcept            = delete;
+        ListDirs& operator=(const ListDirs& source)     = delete;
+        ListDirs& operator=(ListDirs&& source) noexcept = delete;
+
+        void add(const wchar_t* data, std::size_t size);
+
+        friend std::ostream& operator<<(std::ostream& printer_txt, const ListDirs& source);
+
+        private:
+            void refil();
+    };
+}
+
+
+namespace os{
+    os::Wchar_t getcwd() noexcept;
+    bool chwdir() noexcept;
+    os::PRIVATE_DETAILS::ListDirs listdir(const wchar_t* path = os::getcwd().data);
+}
+
+
+
     
 #endif // OS_IMPLEMENTATION_HPP

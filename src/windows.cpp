@@ -303,26 +303,21 @@ os::PRIVATE_DETAILS::ListDirs os::listdirH(const wchar_t* path){
     return temp;
 }
 
+os::Wchar_t os::getcwd() {
+    DWORD buffer_size = GetCurrentDirectoryW(0, nullptr);
+    if (buffer_size == 0) throw os::exceptions::SystemFailureError{};
+    os::Wchar_t buffer{buffer_size + 1};
+    DWORD written = GetCurrentDirectoryW(buffer_size, buffer.data);
+    if (written == 0 || written >= buffer_size) throw os::exceptions::SystemFailureError{};
+    buffer.data[buffer_size -1] = L'\\';
+    buffer.data[buffer_size] = L'\0';
+    return buffer;
+}
+
+bool os::chwdir(wchar_t* path){
+    return SetCurrentDirectoryW(path);
+}
+
 #endif
 
 #include <iostream>
-
-int main(){
-    std::cout << "-----------------Testing Listdir---------------" << std::endl;
-    auto contents = os::listdir(L"D:\\__Projects__\\SuDOs\\*");
-    std::cout << contents << std::endl;
-
-    std::cout << "-----------------Testing ListdirF---------------" << std::endl;
-    auto contentsf = os::listdirF(L"D:\\__Projects__\\SuDOs\\*");
-    std::cout << contentsf << std::endl;
-
-    std::cout << "-----------------Testing ListdirD---------------" << std::endl;
-    auto contentsd = os::listdirD(L"D:\\__Projects__\\SuDOs\\*");
-    std::cout << contentsd << std::endl;
-
-    std::cout << "-----------------Testing ListdirH---------------" << std::endl;
-    auto contenth = os::listdirH(L"D:\\__Projects__\\SuDOs\\*");
-    std::cout << contenth << std::endl;
-    
-    return 0;
-}

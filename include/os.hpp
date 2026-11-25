@@ -593,8 +593,8 @@ namespace os::PRIVATE_DETAILS{
 
 
 namespace os{
-    os::Wchar_t getcwd() noexcept;
-    bool chwdir() noexcept;
+    os::Wchar_t getcwd();
+    [[nodiscard]] bool chwdir(wchar_t* path);
     os::PRIVATE_DETAILS::ListDirs listdir(const wchar_t* path = os::getcwd().data);
     os::PRIVATE_DETAILS::ListDirs listdirF(const wchar_t* path = os::getcwd().data);
     os::PRIVATE_DETAILS::ListDirs listdirD(const wchar_t* path = os::getcwd().data);
